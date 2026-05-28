@@ -67,6 +67,14 @@ class QuarterCar:
             + 0.5 * self.params.k_t * dz_tire**2
         )
 
+    def sprung_acceleration(self, x: ArrayLike, u: float = 0.0, w: float = 0.0) -> float:
+        return float(self.derivative(x, u=u, w=w)[1])
+
+    def tire_normal_force(self, x: ArrayLike, w: float = 0.0, g: float = 9.81) -> float:
+        state = np.asarray(x, dtype=float)
+        dynamic_force = self.params.k_t * (state[2] - float(w))
+        return float(self.params.m * g / 4.0 + dynamic_force)
+
     def _build_A(self) -> np.ndarray:
         p = self.params
         m_s = self.m_s
