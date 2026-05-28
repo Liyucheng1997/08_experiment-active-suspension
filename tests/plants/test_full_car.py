@@ -61,6 +61,16 @@ def test_tire_normal_forces_equal_static_loads_at_rest(default_vehicle) -> None:
     np.testing.assert_allclose(forces, plant.static_loads(), atol=1e-9)
 
 
+def test_full_car_signal_helpers_have_expected_shapes(default_vehicle) -> None:
+    plant = FullCar(default_vehicle)
+    states = np.zeros((3, 14))
+    roads = np.zeros((3, 4))
+
+    assert plant.batch_body_accelerations(states, roads).shape == (3, 3)
+    assert plant.batch_suspension_strokes(states).shape == (3, 4)
+    assert plant.batch_tire_normal_forces(states, roads).shape == (3, 4)
+
+
 def test_full_car_rejects_bad_road_shape(default_vehicle) -> None:
     plant = FullCar(default_vehicle)
 

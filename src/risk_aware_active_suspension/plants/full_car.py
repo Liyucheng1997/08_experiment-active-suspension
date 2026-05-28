@@ -112,6 +112,32 @@ class FullCar:
             forces[corner_idx] += self.params.k_t * (state[z_u_idx] - road[corner_idx])
         return forces
 
+    def suspension_strokes(self, x: ArrayLike) -> np.ndarray:
+        state = np.asarray(x, dtype=float)
+        strokes = np.zeros(4, dtype=float)
+        for corner_idx, (x_pos, y_pos) in enumerate(self.corner_xy):
+            z_u_idx = 6 + 2 * corner_idx
+            body_corner_z = state[0] + y_pos * state[2] + x_pos * state[4]
+            strokes[corner_idx] = body_corner_z - state[z_u_idx]
+        return strokes
+
+    def body_accelerations(self, x: ArrayLike, w: ArrayLike) -> np.ndarray:
+        dx = self.derivative(x, w)
+        return np.array([dx[1], dx[3], dx[5]], dtype=float)
+
+    def batch_tire_normal_forces(self, states: ArrayLike, roads: ArrayLike, g: float = 9.81) -> np.ndarray:
+        state_arr = np.asarray(states, dtype=float)
+        road_arr = np.asarray(roads, dtype=float)
+        return np.array([self.tire_normal_forces(x, w, g=g) for x, w in zip(state_arr, road_arr)])
+
+    def batch_suspension_strokes(self, states: ArrayLike) -> np.ndarray:
+        return np.array([self.suspension_strokes(x) for x in np.asarray(states, dtype=float)])
+
+    def batch_body_accelerations(self, states: ArrayLike, roads: ArrayLike) -> np.ndarray:
+        state_arr = np.asarray(states, dtype=float)
+        road_arr = np.asarray(roads, dtype=float)
+        return np.array([self.body_accelerations(x, w) for x, w in zip(state_arr, road_arr)])
+
     def analytical_roll_natural_frequency(self) -> float:
         k_roll = sum(k * y**2 for k, (_, y) in zip(self.corner_k, self.corner_xy))
         return float(np.sqrt(k_roll / self.params.I_x))
