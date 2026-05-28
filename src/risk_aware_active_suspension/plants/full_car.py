@@ -48,6 +48,25 @@ class FullCar:
             dtype=float,
         )
 
+    def normal_loads_quasi_static(self, a_x: float = 0.0, a_y: float = 0.0, g: float = 9.81) -> np.ndarray:
+        """Normal loads with quasi-static longitudinal and lateral transfer.
+
+        Positive a_x is forward acceleration, so front axle normal load
+        decreases. Positive a_y transfers load to the left side under the
+        coordinate convention used by the roll model.
+        """
+        p = self.params
+        loads = self.static_loads(g=g)
+        wheelbase = p.l_f + p.l_r
+        longitudinal_front_delta = -p.m * p.h_g * float(a_x) / wheelbase
+        lateral_left_delta = p.m * p.h_g * float(a_y) / p.t
+
+        loads[0:2] += longitudinal_front_delta / 2.0
+        loads[2:4] -= longitudinal_front_delta / 2.0
+        loads[[0, 2]] += lateral_left_delta / 2.0
+        loads[[1, 3]] -= lateral_left_delta / 2.0
+        return loads
+
     def derivative(self, x: ArrayLike, w: ArrayLike) -> np.ndarray:
         state = np.asarray(x, dtype=float)
         road = np.asarray(w, dtype=float)
