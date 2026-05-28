@@ -105,3 +105,4 @@ def _save_if_requested(fig, save_path: str | Path | None) -> None:
         path = Path(save_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(path)
+        plt.close(fig)
