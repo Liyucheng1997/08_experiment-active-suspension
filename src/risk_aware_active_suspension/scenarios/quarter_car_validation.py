@@ -147,14 +147,14 @@ def run_phase_1_2(
         free["states"][:, 0],
         ylabel="Sprung displacement [m]",
         title="Quarter-car free vibration",
-        save_path=logger.run_dir / "figures" / "free_vibration.pdf",
+        save_path=logger.run_dir / "figures" / "free_vibration.png",
     )
     plot_freq_response(
         sweep["freq_hz"],
         sweep["magnitude"],
         ylabel="|ddot z_s / z_r| [1/s^2]",
         title="Road-to-sprung acceleration transmissibility",
-        save_path=logger.run_dir / "figures" / "transmissibility.pdf",
+        save_path=logger.run_dir / "figures" / "transmissibility.png",
     )
     plot_side_by_side(
         bump["t"],
@@ -163,7 +163,7 @@ def run_phase_1_2(
         left_label="Road bump [m]",
         right_label="Tire normal force [N]",
         title="Quarter-car rounded bump",
-        save_path=logger.run_dir / "figures" / "bump_tire_force.pdf",
+        save_path=logger.run_dir / "figures" / "bump_tire_force.png",
     )
     plot_side_by_side(
         chirp_result["t"],
@@ -172,7 +172,7 @@ def run_phase_1_2(
         left_label="Chirp road [m]",
         right_label="Sprung acceleration [m/s^2]",
         title="Quarter-car chirp response",
-        save_path=logger.run_dir / "figures" / "chirp_response.pdf",
+        save_path=logger.run_dir / "figures" / "chirp_response.png",
     )
     np.savez(
         logger.run_dir / "raw.npz",

@@ -71,7 +71,7 @@ def run_phase_1_3(
         left_label="Symmetric heave z_s [m]",
         right_label="Symmetric roll phi [rad]",
         title="Half-car symmetric road decoupling",
-        save_path=logger.run_dir / "figures" / "symmetric_decoupling.pdf",
+        save_path=logger.run_dir / "figures" / "symmetric_decoupling.png",
     )
     plot_side_by_side(
         result["t"],
@@ -80,7 +80,7 @@ def run_phase_1_3(
         left_label="Anti-symmetric heave z_s [m]",
         right_label="Anti-symmetric roll phi [rad]",
         title="Half-car anti-symmetric road decoupling",
-        save_path=logger.run_dir / "figures" / "anti_symmetric_decoupling.pdf",
+        save_path=logger.run_dir / "figures" / "anti_symmetric_decoupling.png",
     )
     np.savez(
         logger.run_dir / "raw.npz",

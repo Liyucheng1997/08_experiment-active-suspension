@@ -22,7 +22,7 @@ def test_run_logger_writes_log_and_metrics(tmp_path: Path) -> None:
 
 def test_plot_timeseries_produces_demo_figure(tmp_path: Path) -> None:
     t = np.linspace(0.0, 1.0, 11)
-    path = tmp_path / "figures" / "demo.pdf"
+    path = tmp_path / "figures" / "demo.png"
 
     fig, ax = plot_timeseries(t, np.sin(t), ylabel="z [m]", title="demo", save_path=path)
 

@@ -50,5 +50,5 @@ def test_phase_1_3_runner_writes_acceptance_artifacts(tmp_path, repo_root) -> No
 
     assert (run_dir / "metrics.csv").exists()
     assert (run_dir / "raw.npz").exists()
-    assert (run_dir / "figures" / "symmetric_decoupling.pdf").exists()
-    assert (run_dir / "figures" / "anti_symmetric_decoupling.pdf").exists()
+    assert (run_dir / "figures" / "symmetric_decoupling.png").exists()
+    assert (run_dir / "figures" / "anti_symmetric_decoupling.png").exists()
