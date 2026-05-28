@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from risk_aware_active_suspension.utils.config import VehicleParams, from_yaml
+from risk_aware_active_suspension.utils.config import ObserverParams, VehicleParams, from_yaml, observer_from_yaml
 
 
 def test_loads_default_vehicle_as_typed_params(repo_root: Path) -> None:
@@ -52,3 +52,12 @@ vehicle:
 
     with pytest.raises(ValueError, match="extra"):
         from_yaml(path)
+
+
+def test_loads_default_observer_as_typed_params(repo_root: Path) -> None:
+    params = observer_from_yaml(repo_root / "configs" / "observer_default.yaml")
+
+    assert isinstance(params, ObserverParams)
+    assert params.lambda_1 > 0.0
+    assert params.lambda_2 > 0.0
+    assert params.epsilon > 0.0

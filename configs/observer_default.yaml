@@ -1,0 +1,5 @@
+observer:
+  lambda_1: 20.0
+  lambda_2: 50.0
+  epsilon: 0.02
+  delta_fz_err: 100.0

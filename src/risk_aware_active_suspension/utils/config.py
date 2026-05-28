@@ -58,6 +58,13 @@ def from_yaml(path: str | Path) -> VehicleParams:
     return dataclass_from_mapping(VehicleParams, data["vehicle"])
 
 
+def observer_from_yaml(path: str | Path) -> ObserverParams:
+    data = _read_yaml(path)
+    if "observer" not in data:
+        raise KeyError("Expected top-level 'observer' section.")
+    return dataclass_from_mapping(ObserverParams, data["observer"])
+
+
 def dataclass_from_mapping(cls: type[T], data: dict[str, Any]) -> T:
     expected = {field.name for field in fields(cls)}
     actual = set(data)
