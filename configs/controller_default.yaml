@@ -1,0 +1,17 @@
+lqr:
+  # Sampling time used to discretize the plant via ZOH.
+  T_s: 0.005
+  # Diagonal output weights Q on [ddot z_s, phi, dot phi, theta, dot theta].
+  # The angular weights are ~1e5x the heave-accel weight because phi/theta
+  # are O(1e-2) rad while ddot_z_s is O(1) m/s^2; without this scaling LQR
+  # spends per-corner force to cancel heave and inadvertently excites
+  # roll/pitch via the geometric coupling.
+  q_accel: 50.0
+  q_phi: 5.0e+6
+  q_dphi: 5.0e+6
+  q_theta: 5.0e+6
+  q_dtheta: 5.0e+6
+  # Actuator force weight R on F_e (per corner).
+  r_force: 1.0e-5
+  # Actuator saturation.
+  f_max: 4000.0

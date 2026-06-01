@@ -50,6 +50,18 @@ class ObserverParams:
     delta_fz_err: float = 100.0
 
 
+@dataclass(frozen=True)
+class LQRParams:
+    T_s: float = 0.005
+    q_accel: float = 50.0
+    q_phi: float = 200.0
+    q_dphi: float = 5.0
+    q_theta: float = 200.0
+    q_dtheta: float = 5.0
+    r_force: float = 1.0e-6
+    f_max: float = 4000.0
+
+
 def from_yaml(path: str | Path) -> VehicleParams:
     """Load the default vehicle section from a YAML config file."""
     data = _read_yaml(path)
@@ -63,6 +75,13 @@ def observer_from_yaml(path: str | Path) -> ObserverParams:
     if "observer" not in data:
         raise KeyError("Expected top-level 'observer' section.")
     return dataclass_from_mapping(ObserverParams, data["observer"])
+
+
+def lqr_from_yaml(path: str | Path) -> LQRParams:
+    data = _read_yaml(path)
+    if "lqr" not in data:
+        raise KeyError("Expected top-level 'lqr' section.")
+    return dataclass_from_mapping(LQRParams, data["lqr"])
 
 
 def dataclass_from_mapping(cls: type[T], data: dict[str, Any]) -> T:

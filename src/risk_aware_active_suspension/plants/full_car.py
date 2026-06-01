@@ -31,6 +31,7 @@ class FullCar:
         object.__setattr__(self, "corner_k", self._corner_stiffnesses())
         object.__setattr__(self, "corner_c", self._corner_dampings())
         object.__setattr__(self, "A", self._build_A())
+        object.__setattr__(self, "B", self._build_B())
         object.__setattr__(self, "E", self._build_E())
 
     def static_loads(self, g: float = 9.81) -> np.ndarray:
@@ -67,40 +68,83 @@ class FullCar:
         loads[[1, 3]] -= lateral_left_delta / 2.0
         return loads
 
-    def derivative(self, x: ArrayLike, w: ArrayLike) -> np.ndarray:
+    def derivative(
+        self,
+        x: ArrayLike,
+        w: ArrayLike,
+        u: ArrayLike | None = None,
+        body_acc: ArrayLike | None = None,
+    ) -> np.ndarray:
         state = np.asarray(x, dtype=float)
         road = np.asarray(w, dtype=float)
         if state.shape != (14,):
             raise ValueError(f"x must have shape (14,), got {state.shape}.")
         if road.shape != (4,):
             raise ValueError(f"w must have shape (4,), got {road.shape}.")
-        return self.A @ state + self.E @ road
+        out = self.A @ state + self.E @ road
+        if u is not None:
+            force = np.asarray(u, dtype=float)
+            if force.shape != (4,):
+                raise ValueError(f"u must have shape (4,), got {force.shape}.")
+            out = out + self.B @ force
+        if body_acc is not None:
+            acc = np.asarray(body_acc, dtype=float)
+            if acc.shape != (2,):
+                raise ValueError(f"body_acc must have shape (2,) = (a_x, a_y), got {acc.shape}.")
+            # Body-frame inertial reaction: forward accel a_x lifts the nose
+            # (pitch moment M_y = m*h_g*a_x); lateral accel a_y rolls the body
+            # away from the turn (M_x = -m*h_g*a_y) so that load transfers
+            # consistently with normal_loads_quasi_static.
+            p = self.params
+            out[3] += -p.m * p.h_g * acc[1] / p.I_x
+            out[5] += p.m * p.h_g * acc[0] / p.I_y
+        return out
 
-    def step(self, x: ArrayLike, w: ArrayLike, dt: float) -> np.ndarray:
+    def step(
+        self,
+        x: ArrayLike,
+        w: ArrayLike,
+        dt: float,
+        u: ArrayLike | None = None,
+        body_acc: ArrayLike | None = None,
+    ) -> np.ndarray:
         if dt <= 0.0:
             raise ValueError("dt must be positive.")
         state = np.asarray(x, dtype=float)
         road = np.asarray(w, dtype=float)
-        k1 = self.derivative(state, road)
-        k2 = self.derivative(state + 0.5 * dt * k1, road)
-        k3 = self.derivative(state + 0.5 * dt * k2, road)
-        k4 = self.derivative(state + dt * k3, road)
+        k1 = self.derivative(state, road, u, body_acc)
+        k2 = self.derivative(state + 0.5 * dt * k1, road, u, body_acc)
+        k3 = self.derivative(state + 0.5 * dt * k2, road, u, body_acc)
+        k4 = self.derivative(state + dt * k3, road, u, body_acc)
         return state + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
-    def simulate(self, t: ArrayLike, w_seq: ArrayLike, x0: ArrayLike | None = None) -> np.ndarray:
+    def simulate(
+        self,
+        t: ArrayLike,
+        w_seq: ArrayLike,
+        x0: ArrayLike | None = None,
+        u_seq: ArrayLike | None = None,
+    ) -> np.ndarray:
         time = np.asarray(t, dtype=float)
         if time.ndim != 1 or len(time) < 2:
             raise ValueError("t must be one-dimensional with at least two samples.")
         road = np.asarray(w_seq, dtype=float)
         if road.shape != (len(time), 4):
             raise ValueError(f"w_seq must have shape ({len(time)}, 4), got {road.shape}.")
+        if u_seq is None:
+            forces: np.ndarray | None = None
+        else:
+            forces = np.asarray(u_seq, dtype=float)
+            if forces.shape != (len(time), 4):
+                raise ValueError(f"u_seq must have shape ({len(time)}, 4), got {forces.shape}.")
 
         states = np.zeros((len(time), 14), dtype=float)
         if x0 is not None:
             states[0] = np.asarray(x0, dtype=float)
         for idx in range(len(time) - 1):
             dt = float(time[idx + 1] - time[idx])
-            states[idx + 1] = self.step(states[idx], road[idx], dt)
+            u_now = None if forces is None else forces[idx]
+            states[idx + 1] = self.step(states[idx], road[idx], dt, u=u_now)
         return states
 
     def tire_normal_forces(self, x: ArrayLike, w: ArrayLike, g: float = 9.81) -> np.ndarray:
@@ -121,8 +165,14 @@ class FullCar:
             strokes[corner_idx] = body_corner_z - state[z_u_idx]
         return strokes
 
-    def body_accelerations(self, x: ArrayLike, w: ArrayLike) -> np.ndarray:
-        dx = self.derivative(x, w)
+    def body_accelerations(
+        self,
+        x: ArrayLike,
+        w: ArrayLike,
+        u: ArrayLike | None = None,
+        body_acc: ArrayLike | None = None,
+    ) -> np.ndarray:
+        dx = self.derivative(x, w, u=u, body_acc=body_acc)
         return np.array([dx[1], dx[3], dx[5]], dtype=float)
 
     def batch_tire_normal_forces(self, states: ArrayLike, roads: ArrayLike, g: float = 9.81) -> np.ndarray:
@@ -133,10 +183,22 @@ class FullCar:
     def batch_suspension_strokes(self, states: ArrayLike) -> np.ndarray:
         return np.array([self.suspension_strokes(x) for x in np.asarray(states, dtype=float)])
 
-    def batch_body_accelerations(self, states: ArrayLike, roads: ArrayLike) -> np.ndarray:
+    def batch_body_accelerations(
+        self, states: ArrayLike, roads: ArrayLike, forces: ArrayLike | None = None
+    ) -> np.ndarray:
         state_arr = np.asarray(states, dtype=float)
         road_arr = np.asarray(roads, dtype=float)
-        return np.array([self.body_accelerations(x, w) for x, w in zip(state_arr, road_arr)])
+        if forces is None:
+            return np.array(
+                [self.body_accelerations(x, w) for x, w in zip(state_arr, road_arr)]
+            )
+        force_arr = np.asarray(forces, dtype=float)
+        return np.array(
+            [
+                self.body_accelerations(x, w, u=u)
+                for x, w, u in zip(state_arr, road_arr, force_arr)
+            ]
+        )
 
     def analytical_roll_natural_frequency(self) -> float:
         k_roll = sum(k * y**2 for k, (_, y) in zip(self.corner_k, self.corner_xy))
@@ -228,6 +290,25 @@ class FullCar:
         a[v_u_idx, 5] += c * x / m_u
         a[v_u_idx, z_u_idx] += -(k + k_t) / m_u
         a[v_u_idx, v_u_idx] += -c / m_u
+
+    def _build_B(self) -> np.ndarray:
+        """Per-corner actuator force input matrix.
+
+        F_e_ij acts as +F_e on the sprung body at corner ij and -F_e on the
+        unsprung mass of that corner, by Newton's third law on the suspension.
+        Body equations distribute the corner force via (1/m_s, y/I_x, x/I_y).
+        """
+        b = np.zeros((14, 4), dtype=float)
+        m_s = self.m_s
+        i_x = self.params.I_x
+        i_y = self.params.I_y
+        m_u = self.params.m_u
+        for corner_idx, (x_pos, y_pos) in enumerate(self.corner_xy):
+            b[1, corner_idx] += 1.0 / m_s
+            b[3, corner_idx] += y_pos / i_x
+            b[5, corner_idx] += x_pos / i_y
+            b[7 + 2 * corner_idx, corner_idx] += -1.0 / m_u
+        return b
 
     def _build_E(self) -> np.ndarray:
         e = np.zeros((14, 4), dtype=float)
