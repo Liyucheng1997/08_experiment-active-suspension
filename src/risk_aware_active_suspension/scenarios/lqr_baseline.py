@@ -15,7 +15,7 @@ from risk_aware_active_suspension.controllers.skyhook import (
     QuarterCarSkyhookController,
 )
 from risk_aware_active_suspension.inputs.road import iso8608
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.plants.quarter_car import QuarterCar
 from risk_aware_active_suspension.scenarios.rough_road_validation import (
@@ -58,9 +58,9 @@ def compare_quarter_car(
 
     return {
         "t": t,
-        "passive_rms": float(rmse(passive_run["body_accel"])),
-        "skyhook_rms": float(rmse(sky_run["body_accel"])),
-        "lqr_rms": float(rmse(lqr_run["body_accel"])),
+        "passive_rms": float(rms(passive_run["body_accel"])),
+        "skyhook_rms": float(rms(sky_run["body_accel"])),
+        "lqr_rms": float(rms(lqr_run["body_accel"])),
         "lqr_max_force": float(np.max(np.abs(lqr_run["forces"]))),
         "lqr_stroke_p95": float(np.percentile(np.abs(lqr_run["strokes"]), 95)),
         "passive_run": passive_run,
@@ -91,9 +91,9 @@ def compare_full_car(
 
     def rms_set(run):
         return {
-            "heave": float(rmse(run["body_accel"][:, 0])),
-            "roll": float(rmse(run["body_accel"][:, 1])),
-            "pitch": float(rmse(run["body_accel"][:, 2])),
+            "heave": float(rms(run["body_accel"][:, 0])),
+            "roll": float(rms(run["body_accel"][:, 1])),
+            "pitch": float(rms(run["body_accel"][:, 2])),
         }
 
     passive_rms = rms_set(passive_run)

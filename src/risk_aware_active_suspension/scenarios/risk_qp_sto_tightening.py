@@ -28,7 +28,7 @@ import numpy as np
 from risk_aware_active_suspension.controllers.comfort_qp import FullCarComfortQP
 from risk_aware_active_suspension.controllers.risk_qp import FullCarRiskAwareQP, RiskQPParams
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.plants.full_car import FullCar
 from risk_aware_active_suspension.scenarios.risk_qp_fullcar_ground_truth import (
     _build_scenario, _closed_loop,
@@ -109,7 +109,7 @@ def run_phase_4_7(
             "tightening_n": float(tau),
             "peak_rho_window": float(np.max(rho_window)),
             "rho_violations_samples": float(np.sum(np.max(rho_window, axis=1) > rho_safe + 1e-3)),
-            "heave_rms_m_s2": float(rmse(run["body_accel"][window, 0])),
+            "heave_rms_m_s2": float(rms(run["body_accel"][window, 0])),
             "max_abs_force_n": float(np.max(np.abs(run["forces"][window]))),
             "max_xi_window_n": float(np.max(run["xi"][window])),
             "fz_safe_max_overshoot_n": float(np.max(overshoot)),

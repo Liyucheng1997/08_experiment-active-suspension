@@ -18,7 +18,7 @@ sys.path.insert(0, str(PROJECT / "src"))
 from risk_aware_active_suspension.controllers.comfort_qp import FullCarComfortQP
 from risk_aware_active_suspension.controllers.risk_mpc import RESIDUAL_DECAY, FullCarRiskMPC
 from risk_aware_active_suspension.controllers.risk_qp import FullCarRiskAwareQP, RiskQPParams
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.metrics.tire import rho as rho_fn
 from risk_aware_active_suspension.observers.sto import STO
 from risk_aware_active_suspension.plants.full_car import FullCar
@@ -138,17 +138,17 @@ def main() -> None:
         # --- Metrics over the maneuver window (exclude first 0.5 s) ---
         win = (t >= 0.5) & (t <= t[-1])
         comfort_peak = float(np.max(comfort["rho_contact"][win].max(axis=1)))
-        comfort_heave = float(rmse(comfort["body_accel"][win, 0]))
+        comfort_heave = float(rms(comfort["body_accel"][win, 0]))
         if one_step is not None and qp_finite:
             qp_peak = float(np.max(one_step["rho_contact"][win].max(axis=1)))
-            qp_heave = float(rmse(one_step["body_accel"][win, 0]))
+            qp_heave = float(rms(one_step["body_accel"][win, 0]))
             qp_peak_str = f"{qp_peak:.3f}"
             qp_heave_str = f"{qp_heave:.3f}"
         else:
             qp_peak_str = r"\textsc{Inf.}"
             qp_heave_str = r"\textsc{Inf.}"
         mpc_peak = float(np.max(mpc["rho_contact"][win].max(axis=1)))
-        mpc_heave = float(rmse(mpc["body_accel"][win, 0]))
+        mpc_heave = float(rms(mpc["body_accel"][win, 0]))
 
         print(f"  Comfort: peak={comfort_peak:.3f}  heave={comfort_heave:.3f}")
         print(f"  Risk-QP: peak={qp_peak_str}    heave={qp_heave_str}")

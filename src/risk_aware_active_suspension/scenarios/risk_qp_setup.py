@@ -12,7 +12,7 @@ from risk_aware_active_suspension.controllers.risk_qp import (
 )
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
 from risk_aware_active_suspension.inputs.road import iso8608
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.scenarios.baseline_comparison import lane_change_a_y
 from risk_aware_active_suspension.scenarios.rough_road_validation import (
@@ -162,9 +162,9 @@ def run_phase_4_3(
             for s, w, f, ba in zip(states, roads, forces, body_acc)
         ]
     )
-    logger.log_kv("closed_loop_heave_rms_m_s2", float(rmse(body_accel[:, 0])))
-    logger.log_kv("closed_loop_roll_rms_rad_s2", float(rmse(body_accel[:, 1])))
-    logger.log_kv("closed_loop_pitch_rms_rad_s2", float(rmse(body_accel[:, 2])))
+    logger.log_kv("closed_loop_heave_rms_m_s2", float(rms(body_accel[:, 0])))
+    logger.log_kv("closed_loop_roll_rms_rad_s2", float(rms(body_accel[:, 1])))
+    logger.log_kv("closed_loop_pitch_rms_rad_s2", float(rms(body_accel[:, 2])))
     logger.log_kv("closed_loop_max_force_n", float(np.max(np.abs(forces))))
     logger.log_kv("closed_loop_max_xi_observed", float(np.max(np.abs(xi_log))))
     logger.log_kv("closed_loop_solve_p95_ms", float(np.percentile(timings[:-1], 95) * 1000.0))

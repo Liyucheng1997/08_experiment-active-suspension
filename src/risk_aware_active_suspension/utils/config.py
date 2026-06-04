@@ -44,21 +44,27 @@ class ControllerParams:
 
 @dataclass(frozen=True)
 class ObserverParams:
+    # Defaults mirror configs/observer_default.yaml so that constructing
+    # ObserverParams() without loading YAML still reproduces the project
+    # default. Update both locations in lockstep.
     lambda_1: float = 20.0
-    lambda_2: float = 50.0
+    lambda_2: float = 75.0
     epsilon: float = 0.02
     delta_fz_err: float = 100.0
 
 
 @dataclass(frozen=True)
 class LQRParams:
+    # Defaults mirror configs/controller_default.yaml (lqr section).
+    # See controller_default.yaml for the rationale behind the large
+    # angular weights. Update both locations in lockstep.
     T_s: float = 0.005
     q_accel: float = 50.0
-    q_phi: float = 200.0
-    q_dphi: float = 5.0
-    q_theta: float = 200.0
-    q_dtheta: float = 5.0
-    r_force: float = 1.0e-6
+    q_phi: float = 5.0e+6
+    q_dphi: float = 5.0e+6
+    q_theta: float = 5.0e+6
+    q_dtheta: float = 5.0e+6
+    r_force: float = 1.0e-5
     f_max: float = 4000.0
 
 

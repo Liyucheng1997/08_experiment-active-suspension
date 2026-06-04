@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from risk_aware_active_suspension.controllers.passive import PassiveController
-from risk_aware_active_suspension.metrics.signals import peak_abs, percentile95, rmse
+from risk_aware_active_suspension.metrics.signals import peak_abs, percentile95, rms
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.scenarios.rough_road_validation import (
     _straight_two_track_road,
@@ -58,7 +58,7 @@ def passive_closed_loop(
         "body_accel": body_accel,
         "strokes": strokes,
         "tire_forces": tire_forces,
-        "vertical_accel_rms": rmse(vertical_accel),
+        "vertical_accel_rms": rms(vertical_accel),
         "vertical_accel_peak_abs": peak_abs(vertical_accel),
         "vertical_accel_p95_abs": percentile95(vertical_accel),
         "stroke_peak_abs": float(np.max(np.abs(strokes))),

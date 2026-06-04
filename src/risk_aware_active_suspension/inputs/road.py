@@ -58,7 +58,15 @@ def iso8608(class_: str, v_x: float, t: ArrayLike, seed: int | None = None) -> n
         magnitude = np.sqrt(temporal_psd[1:-1] * fs * n_samples / 2.0)
         spectrum[1:-1] = magnitude * np.exp(1j * phase[1:-1])
     if n_samples % 2 == 0:
+        # Even N: the last rfft bin is the real Nyquist bin and must be
+        # real-valued. Encode the random phase as a sign via cos(phase).
         spectrum[-1] = np.sqrt(temporal_psd[-1] * fs * n_samples) * np.cos(phase[-1])
+    elif len(freqs) >= 2:
+        # Odd N: the last bin is an interior bin (not Nyquist), so it
+        # follows the same two-sided convention as the other interior
+        # bins. Without this branch it would stay zero and shed energy
+        # at the top of the spectrum.
+        spectrum[-1] = np.sqrt(temporal_psd[-1] * fs * n_samples / 2.0) * np.exp(1j * phase[-1])
 
     road = np.fft.irfft(spectrum, n=n_samples)
     return road - np.mean(road)

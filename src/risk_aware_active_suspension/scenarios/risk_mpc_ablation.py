@@ -11,7 +11,7 @@ import numpy as np
 from risk_aware_active_suspension.controllers.risk_mpc import RESIDUAL_DECAY, FullCarRiskMPC, predict_fz_horizon
 from risk_aware_active_suspension.controllers.risk_qp import RiskQPParams
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.metrics.tire import rho
 from risk_aware_active_suspension.observers.sto import STO
 from risk_aware_active_suspension.plants.full_car import FullCar
@@ -231,7 +231,7 @@ def _summarize_run(scenario: Phase6Scenario, ablation: AblationSpec, run: dict[s
         "label": ablation.label,
         "peak_rho": float(np.max(rho_max)),
         "p95_rho": float(np.percentile(rho_max, 95)),
-        "heave_rms": float(rmse(run["body_accel"][:, 0])),
+        "heave_rms": float(rms(run["body_accel"][:, 0])),
         "max_force_n": float(np.max(np.abs(run["forces"]))),
         "min_fz_n": float(np.min(run["fz_true"])),
         "max_xi_n": float(np.max(np.abs(run["xi"]))),

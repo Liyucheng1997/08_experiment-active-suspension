@@ -11,7 +11,7 @@ import numpy as np
 from risk_aware_active_suspension.controllers.comfort_qp import FullCarComfortQP
 from risk_aware_active_suspension.controllers.risk_mpc import RESIDUAL_DECAY, FullCarRiskMPC, predict_fz_horizon
 from risk_aware_active_suspension.controllers.risk_qp import RiskQPParams
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.metrics.tire import rho
 from risk_aware_active_suspension.plants.carsim_fmu import CarSimFmuPlant
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
@@ -426,8 +426,8 @@ def _summarize(
         "mpc_rho_p95": float(np.percentile(np.max(mpc["rho_contact"][valid], axis=1), 95)),
         "comfort_min_fz_n": float(np.min(comfort["fz_true"][valid])),
         "mpc_min_fz_n": float(np.min(mpc["fz_true"][valid])),
-        "comfort_heave_rms_m_s2": float(rmse(comfort["az_m_s2"][valid])),
-        "mpc_heave_rms_m_s2": float(rmse(mpc["az_m_s2"][valid])),
+        "comfort_heave_rms_m_s2": float(rms(comfort["az_m_s2"][valid])),
+        "mpc_heave_rms_m_s2": float(rms(mpc["az_m_s2"][valid])),
         "mpc_max_force_n": float(np.max(np.abs(mpc["forces"][valid]))),
         "mpc_force_saturation": int(float(np.max(np.abs(mpc["forces"][valid]))) >= 0.95 * f_max),
         "mpc_p95_solve_time_ms": float(np.percentile(solve_samples, 95) * 1000.0) if len(solve_samples) else 0.0,

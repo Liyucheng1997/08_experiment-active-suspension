@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from risk_aware_active_suspension.inputs.road import iso8608
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.observers.sto import STO
 from risk_aware_active_suspension.plants.quarter_car import QuarterCar
 from risk_aware_active_suspension.scenarios.sto_real_road_validation import _quarter_car_phi_known
@@ -65,9 +65,9 @@ def sto_noise_saturation_validation(
         "ideal_chatter_n_per_s": ideal_chatter,
         "saturated_chatter_n_per_s": saturated_chatter,
         "chatter_reduction_ratio": saturated_chatter / ideal_chatter,
-        "ideal_rmse_after_transient_n": rmse(ideal_error[post]),
-        "saturated_rmse_after_transient_n": rmse(saturated_error[post]),
-        "saturated_rmse_ratio_after_transient": rmse(saturated_error[post])
+        "ideal_rmse_after_transient_n": rms(ideal_error[post]),
+        "saturated_rmse_after_transient_n": rms(saturated_error[post]),
+        "saturated_rmse_ratio_after_transient": rms(saturated_error[post])
         / max(1.0, np.max(np.abs(truth_tire_dynamic_force[post]))),
         "saturated_correlation_after_transient": float(
             np.corrcoef(truth_tire_dynamic_force[post], saturated["tire_dynamic_force_hat"][post])[0, 1]

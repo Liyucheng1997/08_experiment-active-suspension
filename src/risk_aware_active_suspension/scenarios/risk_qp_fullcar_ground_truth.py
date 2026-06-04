@@ -29,7 +29,7 @@ from risk_aware_active_suspension.controllers.comfort_qp import FullCarComfortQP
 from risk_aware_active_suspension.controllers.risk_qp import FullCarRiskAwareQP, RiskQPParams
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
 from risk_aware_active_suspension.inputs.road import rounded_bump
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.metrics.tire import f_z_required, rho
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.utils.config import from_yaml, lqr_from_yaml
@@ -244,8 +244,8 @@ def run_phase_4_5(
     peak_risk = float(np.max(risk_run["rho_contact"][window]))
     peak_reduction = (peak_comfort - peak_risk) / peak_comfort
 
-    heave_comfort_rms = float(rmse(comfort_run["body_accel"][window, 0]))
-    heave_risk_rms = float(rmse(risk_run["body_accel"][window, 0]))
+    heave_comfort_rms = float(rms(comfort_run["body_accel"][window, 0]))
+    heave_risk_rms = float(rms(risk_run["body_accel"][window, 0]))
     comfort_degradation = (heave_risk_rms - heave_comfort_rms) / heave_comfort_rms
 
     logger.log_kv("mu", mu)

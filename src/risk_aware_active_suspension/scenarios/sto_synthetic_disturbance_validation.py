@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.observers.sto import STO
 from risk_aware_active_suspension.utils.config import ObserverParams, from_yaml, observer_from_yaml
 from risk_aware_active_suspension.utils.logger import RunLogger
@@ -81,8 +81,8 @@ def _run_synthetic_case(
         "d_z_hat": d_z_hat,
         "force_error": error,
         "settling_time_s": settling_time(t, error, tolerance=0.01 * max(1.0, np.max(np.abs(truth_force)))),
-        "steady_state_rmse_n": rmse(error[post]),
-        "steady_state_rmse_ratio": rmse(error[post]) / max(1.0, np.max(np.abs(truth_force))),
+        "steady_state_rmse_n": rms(error[post]),
+        "steady_state_rmse_ratio": rms(error[post]) / max(1.0, np.max(np.abs(truth_force))),
     }
 
 

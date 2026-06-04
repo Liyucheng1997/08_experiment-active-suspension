@@ -80,7 +80,13 @@ def test_rate_constraint_binds_when_step_too_large(default_vehicle, default_lqr)
 
 
 def test_actuator_box_respected(default_vehicle) -> None:
-    lqr = LQRParams(f_max=500.0)
+    # Moderate angular weights keep the saturated QP numerically clean;
+    # this test targets box-constraint respect, not default tuning.
+    lqr = LQRParams(
+        f_max=500.0,
+        q_phi=200.0, q_dphi=5.0, q_theta=200.0, q_dtheta=5.0,
+        r_force=1.0e-6,
+    )
     risk = RiskWeightParams(q_c_min=1.0, q_c_max=1.0, q_p_min=0.0, q_p_max=0.0)
     rqp = FullCarRiskAwareQP(default_vehicle, lqr, risk,
                               RiskQPParams(enforce_rate=False))

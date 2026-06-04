@@ -16,7 +16,7 @@ from risk_aware_active_suspension.controllers.lqr import (
 )
 from risk_aware_active_suspension.controllers.passive import PassiveController
 from risk_aware_active_suspension.inputs.road import iso8608
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.plants.quarter_car import QuarterCar
 from risk_aware_active_suspension.scenarios.rough_road_validation import (
@@ -162,13 +162,13 @@ def run_phase_3_4(
     # Metrics
     def rms_axes(run):
         return {
-            "heave": float(rmse(run["body_accel"][:, 0])),
-            "roll": float(rmse(run["body_accel"][:, 1])),
-            "pitch": float(rmse(run["body_accel"][:, 2])),
+            "heave": float(rms(run["body_accel"][:, 0])),
+            "roll": float(rms(run["body_accel"][:, 1])),
+            "pitch": float(rms(run["body_accel"][:, 2])),
         }
 
-    qc_lqr_rms = float(rmse(qc_lqr_run["body_accel"]))
-    qc_qp_rms = float(rmse(qc_qp_run["body_accel"]))
+    qc_lqr_rms = float(rms(qc_lqr_run["body_accel"]))
+    qc_qp_rms = float(rms(qc_qp_run["body_accel"]))
     fc_lqr_rms = rms_axes(fc_lqr_run)
     fc_qp_rms = rms_axes(fc_qp_run)
     fc_passive_rms = rms_axes(fc_passive)

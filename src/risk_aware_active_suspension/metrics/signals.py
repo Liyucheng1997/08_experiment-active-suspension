@@ -4,7 +4,8 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-def rmse(values: ArrayLike) -> float:
+def rms(values: ArrayLike) -> float:
+    """Root-mean-square of a single signal (no reference)."""
     arr = _as_array(values)
     return float(np.sqrt(np.mean(arr**2)))
 

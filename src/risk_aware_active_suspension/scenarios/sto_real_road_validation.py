@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from risk_aware_active_suspension.inputs.road import iso8608
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.observers.sto import STO
 from risk_aware_active_suspension.plants.quarter_car import QuarterCar
 from risk_aware_active_suspension.utils.config import ObserverParams, from_yaml, observer_from_yaml
@@ -68,8 +68,8 @@ def sto_real_road_validation(
         "chi_hat": chi_hat,
         "force_error": error,
         "correlation_after_transient": corr,
-        "rmse_after_transient_n": rmse(error[post]),
-        "rmse_ratio_after_transient": rmse(error[post]) / max(1.0, np.max(np.abs(truth_post))),
+        "rmse_after_transient_n": rms(error[post]),
+        "rmse_ratio_after_transient": rms(error[post]) / max(1.0, np.max(np.abs(truth_post))),
         "truth_tire_dynamic_peak_abs_n": float(np.max(np.abs(truth_post))),
     }
 

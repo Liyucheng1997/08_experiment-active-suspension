@@ -1,13 +1,13 @@
 import numpy as np
 import pytest
 
-from risk_aware_active_suspension.metrics.signals import iae, itae, peak_abs, percentile95, rmse
+from risk_aware_active_suspension.metrics.signals import iae, itae, peak_abs, percentile95, rms
 
 
 def test_signal_metrics_match_hand_computed_values() -> None:
     values = np.array([0.0, 3.0, 4.0])
 
-    assert rmse(values) == pytest.approx(np.sqrt(25.0 / 3.0))
+    assert rms(values) == pytest.approx(np.sqrt(25.0 / 3.0))
     assert peak_abs(values) == 4.0
     assert percentile95(values) == pytest.approx(3.9)
 

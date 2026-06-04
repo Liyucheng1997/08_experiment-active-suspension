@@ -16,7 +16,7 @@ from risk_aware_active_suspension.controllers.risk_mpc import (
 from risk_aware_active_suspension.controllers.risk_qp import RiskQPParams
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
 from risk_aware_active_suspension.inputs.road import sine
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.metrics.tire import rho
 from risk_aware_active_suspension.observers.sto import STO
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
@@ -236,12 +236,12 @@ def run_phase_5_3(
     logger.log_kv("rho_safe", rho_safe)
     for label, run in runs.items():
         peak = float(np.max(run["rho_contact"][window]))
-        rms = float(rmse(run["body_accel"][window, 0]))
+        heave_rms = float(rms(run["body_accel"][window, 0]))
         max_force = float(np.max(np.abs(run["forces"][window])))
         p95_solve_ms = float(np.percentile(run["solve_time"][run["solve_time"] > 0.0], 95) * 1000.0)
         logger.log_kv(f"{label}_peak_rho_contact_window", peak)
         logger.log_kv(f"{label}_rho_reduction_vs_comfort_ratio", (comfort_peak - peak) / max(comfort_peak, 1.0e-9))
-        logger.log_kv(f"{label}_heave_rms_window_m_s2", rms)
+        logger.log_kv(f"{label}_heave_rms_window_m_s2", heave_rms)
         logger.log_kv(f"{label}_max_abs_force_n", max_force)
         logger.log_kv(f"{label}_p95_solve_time_ms", p95_solve_ms)
         logger.log_kv(f"{label}_stable_no_nan", int(np.all(np.isfinite(run["states"]))))

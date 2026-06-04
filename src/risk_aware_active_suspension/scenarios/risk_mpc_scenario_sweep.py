@@ -13,7 +13,7 @@ from risk_aware_active_suspension.controllers.risk_mpc import RESIDUAL_DECAY, Fu
 from risk_aware_active_suspension.controllers.risk_qp import RiskQPParams
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
 from risk_aware_active_suspension.inputs.road import rounded_bump
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.metrics.tire import rho
 from risk_aware_active_suspension.plants.full_car import FullCar
 from risk_aware_active_suspension.scenarios.baseline_comparison import lane_change_a_y
@@ -231,9 +231,9 @@ def _summarize_scenario(spec: Phase6Scenario, comfort: dict, mpc: dict, f_max: f
         "rho_reduction_ratio": (comfort_peak - mpc_peak) / max(comfort_peak, 1.0e-9),
         "comfort_rho_p95": float(np.percentile(np.max(comfort["rho_contact"], axis=1), 95)),
         "mpc_rho_p95": float(np.percentile(np.max(mpc["rho_contact"], axis=1), 95)),
-        "comfort_heave_rms": float(rmse(comfort["body_accel"][:, 0])),
-        "mpc_heave_rms": float(rmse(mpc["body_accel"][:, 0])),
-        "heave_degradation_ratio": (float(rmse(mpc["body_accel"][:, 0])) - float(rmse(comfort["body_accel"][:, 0]))) / max(float(rmse(comfort["body_accel"][:, 0])), 1.0e-9),
+        "comfort_heave_rms": float(rms(comfort["body_accel"][:, 0])),
+        "mpc_heave_rms": float(rms(mpc["body_accel"][:, 0])),
+        "heave_degradation_ratio": (float(rms(mpc["body_accel"][:, 0])) - float(rms(comfort["body_accel"][:, 0]))) / max(float(rms(comfort["body_accel"][:, 0])), 1.0e-9),
         "mpc_max_force_n": float(np.max(np.abs(mpc["forces"]))),
         "mpc_force_saturation": int(float(np.max(np.abs(mpc["forces"]))) >= 0.95 * f_max),
         "comfort_min_fz_n": float(np.min(comfort["fz_true"])),

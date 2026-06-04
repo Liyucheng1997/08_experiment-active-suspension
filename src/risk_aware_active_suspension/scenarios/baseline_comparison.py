@@ -12,7 +12,7 @@ from risk_aware_active_suspension.controllers.lqr import FullCarLQRController
 from risk_aware_active_suspension.controllers.passive import PassiveController
 from risk_aware_active_suspension.controllers.skyhook import FullCarSkyhookController
 from risk_aware_active_suspension.inputs.road import iso8608
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.scenarios.rough_road_validation import (
     _straight_two_track_road,
@@ -103,10 +103,10 @@ def _simulate(
 def _summary(run: dict[str, np.ndarray]) -> dict[str, float]:
     a = run["body_accel"]
     return {
-        "heave_rms": float(rmse(a[:, 0])),
-        "roll_rms": float(rmse(a[:, 1])),
-        "pitch_rms": float(rmse(a[:, 2])),
-        "aggregate_rms": float(np.sqrt(rmse(a[:, 0]) ** 2 + rmse(a[:, 1]) ** 2 + rmse(a[:, 2]) ** 2)),
+        "heave_rms": float(rms(a[:, 0])),
+        "roll_rms": float(rms(a[:, 1])),
+        "pitch_rms": float(rms(a[:, 2])),
+        "aggregate_rms": float(np.sqrt(rms(a[:, 0]) ** 2 + rms(a[:, 1]) ** 2 + rms(a[:, 2]) ** 2)),
         "max_force_n": float(np.max(np.abs(run["forces"]))),
         "stroke_p95_m": float(np.percentile(np.abs(run["strokes"]), 95)),
         "min_tire_force_n": float(np.min(run["tire_forces"])),

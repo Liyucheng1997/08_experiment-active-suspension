@@ -24,7 +24,7 @@ import numpy as np
 from risk_aware_active_suspension.controllers.comfort_qp import FullCarComfortQP
 from risk_aware_active_suspension.controllers.risk_qp import FullCarRiskAwareQP, RiskQPParams
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.metrics.tire import rho
 from risk_aware_active_suspension.observers.sto import STO
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
@@ -226,9 +226,9 @@ def run_phase_4_6(
     comfort_peak_rho = float(np.max(comfort_run["rho_contact"][window]))
     peak_rho_relative_error = abs(sto_peak_rho - truth_peak_rho) / max(truth_peak_rho, 1.0e-9)
 
-    truth_rms = float(rmse(truth_run["body_accel"][window, 0]))
-    sto_rms = float(rmse(sto_run["body_accel"][window, 0]))
-    comfort_rms = float(rmse(comfort_run["body_accel"][window, 0]))
+    truth_rms = float(rms(truth_run["body_accel"][window, 0]))
+    sto_rms = float(rms(sto_run["body_accel"][window, 0]))
+    comfort_rms = float(rms(comfort_run["body_accel"][window, 0]))
     comfort_relative_error = abs(sto_rms - truth_rms) / max(truth_rms, 1.0e-9)
 
     # Bump-window error is dominated by STO bandwidth (super-twisting at the
@@ -236,10 +236,10 @@ def run_phase_4_6(
     # base the acceptance on the FULL-DURATION correlation instead — that's
     # what Phase 4.7 then patches with the constraint-tightening trick.
     fz_err_window = sto_run["fz_hat"][window] - sto_run["fz_true"][window]
-    fz_window_rmse = float(rmse(fz_err_window))
+    fz_window_rmse = float(rms(fz_err_window))
     fz_window_max_abs = float(np.max(np.abs(fz_err_window)))
     fz_err_full = sto_run["fz_hat"] - sto_run["fz_true"]
-    fz_rmse = float(rmse(fz_err_full))
+    fz_rmse = float(rms(fz_err_full))
     fz_max_abs = float(np.max(np.abs(fz_err_full)))
     corr = np.zeros(4)
     for c in range(4):

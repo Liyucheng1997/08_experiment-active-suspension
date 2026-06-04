@@ -11,7 +11,7 @@ from risk_aware_active_suspension.controllers.skyhook import (
     QuarterCarSkyhookController,
 )
 from risk_aware_active_suspension.inputs.road import iso8608
-from risk_aware_active_suspension.metrics.signals import peak_abs, percentile95, rmse
+from risk_aware_active_suspension.metrics.signals import peak_abs, percentile95, rms
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.plants.quarter_car import QuarterCar
 from risk_aware_active_suspension.scenarios.rough_road_validation import (
@@ -65,13 +65,13 @@ def tune_quarter_car_skyhook(
     road = iso8608(road_class, v_x=v_x, t=t, seed=seed)
 
     passive_run = _simulate_quarter_car(plant, PassiveController(n_actuators=1), t, road)
-    passive_rms = rmse(passive_run["body_accel"])
+    passive_rms = rms(passive_run["body_accel"])
 
     sweep = []
     for c_sky in c_sky_grid:
         controller = QuarterCarSkyhookController(c_sky=c_sky, f_max=f_max)
         run = _simulate_quarter_car(plant, controller, t, road)
-        accel_rms = rmse(run["body_accel"])
+        accel_rms = rms(run["body_accel"])
         stroke_p95 = float(np.percentile(np.abs(run["strokes"]), 95))
         min_tire = float(np.min(run["tire_forces"]))
         max_force = float(np.max(np.abs(run["forces"])))
@@ -120,8 +120,8 @@ def passive_vs_skyhook_quarter(
         plant, QuarterCarSkyhookController(c_sky=c_sky, f_max=f_max), t, road
     )
 
-    passive_rms = rmse(passive_run["body_accel"])
-    sky_rms = rmse(sky_run["body_accel"])
+    passive_rms = rms(passive_run["body_accel"])
+    sky_rms = rms(sky_run["body_accel"])
     return {
         "t": t,
         "road": road,
@@ -179,9 +179,9 @@ def passive_vs_skyhook_full(
 
     def rms_set(run):
         return {
-            "heave": float(rmse(run["body_accel"][:, 0])),
-            "roll": float(rmse(run["body_accel"][:, 1])),
-            "pitch": float(rmse(run["body_accel"][:, 2])),
+            "heave": float(rms(run["body_accel"][:, 0])),
+            "roll": float(rms(run["body_accel"][:, 1])),
+            "pitch": float(rms(run["body_accel"][:, 2])),
         }
 
     passive_rms = rms_set(passive_run)

@@ -12,12 +12,12 @@ def test_run_logger_writes_log_and_metrics(tmp_path: Path) -> None:
     logger = RunLogger.from_existing(tmp_path / "run")
 
     logger.log("started")
-    logger.log_kv("rmse", 1.25)
+    logger.log_kv("rms", 1.25)
 
     assert "started" in (logger.run_dir / "log.txt").read_text(encoding="utf-8")
     with (logger.run_dir / "metrics.csv").open("r", newline="", encoding="utf-8") as file:
         rows = list(csv.reader(file))
-    assert rows == [["key", "value"], ["rmse", "1.25"]]
+    assert rows == [["key", "value"], ["rms", "1.25"]]
 
 
 def test_plot_timeseries_produces_demo_figure(tmp_path: Path) -> None:

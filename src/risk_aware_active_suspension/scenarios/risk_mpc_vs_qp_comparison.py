@@ -13,7 +13,7 @@ from risk_aware_active_suspension.controllers.risk_mpc import (
 )
 from risk_aware_active_suspension.controllers.risk_qp import FullCarRiskAwareQP, RiskQPParams
 from risk_aware_active_suspension.controllers.risk_weights import RiskWeightParams
-from risk_aware_active_suspension.metrics.signals import rmse
+from risk_aware_active_suspension.metrics.signals import rms
 from risk_aware_active_suspension.plants.full_car import CORNER_NAMES, FullCar
 from risk_aware_active_suspension.scenarios.risk_mpc_residual_prediction import (
     _moving_average,
@@ -208,9 +208,9 @@ def _compute_metrics(window: np.ndarray, comfort: dict, qp: dict, mpc: dict) -> 
         "comfort_peak_rho": float(np.max(comfort["rho_contact"][window])),
         "qp_peak_rho": float(np.max(qp["rho_contact"][window])),
         "mpc_peak_rho": float(np.max(mpc["rho_contact"][window])),
-        "comfort_heave_rms": float(rmse(comfort["body_accel"][window, 0])),
-        "qp_heave_rms": float(rmse(qp["body_accel"][window, 0])),
-        "mpc_heave_rms": float(rmse(mpc["body_accel"][window, 0])),
+        "comfort_heave_rms": float(rms(comfort["body_accel"][window, 0])),
+        "qp_heave_rms": float(rms(qp["body_accel"][window, 0])),
+        "mpc_heave_rms": float(rms(mpc["body_accel"][window, 0])),
         "qp_max_force": float(np.max(np.abs(qp["forces"][window]))),
         "mpc_max_force": float(np.max(np.abs(mpc["forces"][window]))),
     }

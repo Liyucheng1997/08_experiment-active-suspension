@@ -60,9 +60,9 @@ def run_phase_7_3_sto_validation(
             for idx in range(4)
         ]
     )
-    rmse = np.sqrt(np.mean((truth_dynamic[valid] - estimate_dynamic[valid]) ** 2, axis=0))
+    rms = np.sqrt(np.mean((truth_dynamic[valid] - estimate_dynamic[valid]) ** 2, axis=0))
     truth_peak = np.max(np.abs(truth_dynamic[valid]), axis=0)
-    rmse_ratio = rmse / np.maximum(truth_peak, 1.0)
+    rmse_ratio = rms / np.maximum(truth_peak, 1.0)
 
     metrics = {
         "road_class": road_class,
@@ -70,7 +70,7 @@ def run_phase_7_3_sto_validation(
         "speed_mean_kmh": float(np.mean(sim["vx_kmh"][valid])),
         "min_correlation": float(np.min(corr)),
         "mean_correlation": float(np.mean(corr)),
-        "max_rmse_n": float(np.max(rmse)),
+        "max_rmse_n": float(np.max(rms)),
         "max_rmse_ratio": float(np.max(rmse_ratio)),
         "max_truth_dynamic_peak_n": float(np.max(truth_peak)),
         "lambda_1": observer.lambda_1,
@@ -82,7 +82,7 @@ def run_phase_7_3_sto_validation(
         logger.log_kv(key, value)
     for idx, corner in enumerate(CORNER_NAMES):
         logger.log_kv(f"{corner}_correlation", float(corr[idx]))
-        logger.log_kv(f"{corner}_rmse_n", float(rmse[idx]))
+        logger.log_kv(f"{corner}_rmse_n", float(rms[idx]))
         logger.log_kv(f"{corner}_rmse_ratio", float(rmse_ratio[idx]))
 
     np.savez(
@@ -98,7 +98,7 @@ def run_phase_7_3_sto_validation(
         wheel_vz_m_s=sim["wheel_vz_m_s"],
         vx_kmh=sim["vx_kmh"],
         corr=corr,
-        rmse=rmse,
+        rms=rms,
     )
     _plot_tracking(logger.run_dir / "figures" / "sto_dynamic_fz_tracking.png", t, truth_dynamic, estimate_dynamic)
     _plot_error(logger.run_dir / "figures" / "sto_dynamic_fz_error.png", t, truth_dynamic - estimate_dynamic)
