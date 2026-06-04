@@ -23,7 +23,7 @@ def load_transfer_validation(plant: FullCar, a_x: float = 5.0, a_y: float = 5.0)
     expected_front_delta = -p.m * p.h_g * a_x / wheelbase
     left_delta = float(np.sum(lateral[[0, 2]]) - np.sum(static[[0, 2]]))
     right_delta = float(np.sum(lateral[[1, 3]]) - np.sum(static[[1, 3]]))
-    expected_left_delta = p.m * p.h_g * a_y / p.t
+    expected_right_delta = p.m * p.h_g * a_y / p.t
 
     return {
         "static_loads": static,
@@ -35,8 +35,8 @@ def load_transfer_validation(plant: FullCar, a_x: float = 5.0, a_y: float = 5.0)
         "front_delta_rel_error": abs(front_delta - expected_front_delta) / abs(expected_front_delta),
         "left_delta": left_delta,
         "right_delta": right_delta,
-        "expected_left_delta": float(expected_left_delta),
-        "left_delta_rel_error": abs(left_delta - expected_left_delta) / abs(expected_left_delta),
+        "expected_right_delta": float(expected_right_delta),
+        "right_delta_rel_error": abs(right_delta - expected_right_delta) / abs(expected_right_delta),
     }
 
 
@@ -56,8 +56,8 @@ def run_phase_1_5(
         "front_delta_rel_error": result["front_delta_rel_error"],
         "rear_delta_n": result["rear_delta"],
         "left_delta_n": result["left_delta"],
-        "left_expected_delta_n": result["expected_left_delta"],
-        "left_delta_rel_error": result["left_delta_rel_error"],
+        "right_expected_delta_n": result["expected_right_delta"],
+        "right_delta_rel_error": result["right_delta_rel_error"],
         "right_delta_n": result["right_delta"],
     }
     for key, value in metrics.items():

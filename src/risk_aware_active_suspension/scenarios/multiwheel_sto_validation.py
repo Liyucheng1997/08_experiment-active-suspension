@@ -24,7 +24,7 @@ def single_wheel_bump_validation(
     roads = np.zeros((len(t), 4))
     roads[:, target_wheel] = rounded_bump(t, height=0.01, start=0.4, duration=0.08)
     states = plant.simulate(t, roads)
-    truth = plant.params.k_t * (states[:, 6::2] - roads)
+    truth = plant.params.k_t * (roads - states[:, 6::2])
     estimates = _run_multiwheel_sto(plant, observer_params, states, roads, dt)
 
     post = t >= 0.2
@@ -179,7 +179,7 @@ def _run_multiwheel_sto(
                 phi_known=phi_known,
                 dt=dt,
             )
-            estimates[time_idx, corner_idx] = -additive_force_hat
+            estimates[time_idx, corner_idx] = additive_force_hat
     return estimates
 
 

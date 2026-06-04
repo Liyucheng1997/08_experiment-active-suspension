@@ -53,19 +53,23 @@ class FullCar:
         """Normal loads with quasi-static longitudinal and lateral transfer.
 
         Positive a_x is forward acceleration, so front axle normal load
-        decreases. Positive a_y transfers load to the left side under the
-        coordinate convention used by the roll model.
+        decreases. Positive a_y follows the paper convention and transfers
+        load to the right side, with lateral transfer distributed between
+        axles in proportion to l_r/L at the front and l_f/L at the rear.
         """
         p = self.params
         loads = self.static_loads(g=g)
         wheelbase = p.l_f + p.l_r
         longitudinal_front_delta = -p.m * p.h_g * float(a_x) / wheelbase
-        lateral_left_delta = p.m * p.h_g * float(a_y) / p.t
+        lateral_front_delta = p.m * p.h_g * float(a_y) * p.l_r / (wheelbase * p.t)
+        lateral_rear_delta = p.m * p.h_g * float(a_y) * p.l_f / (wheelbase * p.t)
 
         loads[0:2] += longitudinal_front_delta / 2.0
         loads[2:4] -= longitudinal_front_delta / 2.0
-        loads[[0, 2]] += lateral_left_delta / 2.0
-        loads[[1, 3]] -= lateral_left_delta / 2.0
+        loads[0] -= lateral_front_delta
+        loads[1] += lateral_front_delta
+        loads[2] -= lateral_rear_delta
+        loads[3] += lateral_rear_delta
         return loads
 
     def derivative(
@@ -91,12 +95,15 @@ class FullCar:
             acc = np.asarray(body_acc, dtype=float)
             if acc.shape != (2,):
                 raise ValueError(f"body_acc must have shape (2,) = (a_x, a_y), got {acc.shape}.")
-            # Body-frame inertial reaction: forward accel a_x lifts the nose
-            # (pitch moment M_y = m*h_g*a_x); lateral accel a_y rolls the body
-            # away from the turn (M_x = -m*h_g*a_y) so that load transfers
-            # consistently with normal_loads_quasi_static.
+            # Body-frame inertial reaction. Positive a_y (left turn) transfers
+            # load to the RIGHT (outer) wheels, matching the paper convention
+            # and normal_loads_quasi_static: with phi>0 raising the left side,
+            # the required roll moment is +m*h_g*a_y. Positive a_x (forward
+            # accel) lifts the nose via pitch moment +m*h_g*a_x, unloading the
+            # front axle. The dynamic steady state then matches the quasi-static
+            # load-transfer model on both channels.
             p = self.params
-            out[3] += -p.m * p.h_g * acc[1] / p.I_x
+            out[3] += p.m * p.h_g * acc[1] / p.I_x
             out[5] += p.m * p.h_g * acc[0] / p.I_y
         return out
 
@@ -147,14 +154,22 @@ class FullCar:
             states[idx + 1] = self.step(states[idx], road[idx], dt, u=u_now)
         return states
 
-    def tire_normal_forces(self, x: ArrayLike, w: ArrayLike, g: float = 9.81) -> np.ndarray:
+    def tire_normal_forces(
+        self,
+        x: ArrayLike,
+        w: ArrayLike,
+        g: float = 9.81,
+        contact_floor_n: float = 0.0,
+    ) -> np.ndarray:
         state = np.asarray(x, dtype=float)
         road = np.asarray(w, dtype=float)
+        if contact_floor_n < 0.0:
+            raise ValueError("contact_floor_n must be non-negative.")
         forces = self.static_loads(g=g).copy()
         for corner_idx in range(4):
             z_u_idx = 6 + 2 * corner_idx
-            forces[corner_idx] += self.params.k_t * (state[z_u_idx] - road[corner_idx])
-        return forces
+            forces[corner_idx] += self.params.k_t * (road[corner_idx] - state[z_u_idx])
+        return np.maximum(forces, contact_floor_n)
 
     def suspension_strokes(self, x: ArrayLike) -> np.ndarray:
         state = np.asarray(x, dtype=float)
@@ -175,10 +190,21 @@ class FullCar:
         dx = self.derivative(x, w, u=u, body_acc=body_acc)
         return np.array([dx[1], dx[3], dx[5]], dtype=float)
 
-    def batch_tire_normal_forces(self, states: ArrayLike, roads: ArrayLike, g: float = 9.81) -> np.ndarray:
+    def batch_tire_normal_forces(
+        self,
+        states: ArrayLike,
+        roads: ArrayLike,
+        g: float = 9.81,
+        contact_floor_n: float = 0.0,
+    ) -> np.ndarray:
         state_arr = np.asarray(states, dtype=float)
         road_arr = np.asarray(roads, dtype=float)
-        return np.array([self.tire_normal_forces(x, w, g=g) for x, w in zip(state_arr, road_arr)])
+        return np.array(
+            [
+                self.tire_normal_forces(x, w, g=g, contact_floor_n=contact_floor_n)
+                for x, w in zip(state_arr, road_arr)
+            ]
+        )
 
     def batch_suspension_strokes(self, states: ArrayLike) -> np.ndarray:
         return np.array([self.suspension_strokes(x) for x in np.asarray(states, dtype=float)])

@@ -14,10 +14,7 @@ import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_ROOT = PROJECT_ROOT / "results"
-PAPER_ROOT = Path(
-    r"D:\OneDrive - Unimore\02_博士相关资料\05_论文资料备份\01_我的Latex论文写作"
-    r"\12_Risk-Aware Active Suspension Control for Tire Friction Margin Protection Using Super-Twisting Normal Load Estimation"
-)
+PAPER_ROOT = Path(r"F:\latex\12_RiskAware_ActiveSuspension")
 FIG_DIR = PAPER_ROOT / "figures"
 TABLE_DIR = PAPER_ROOT / "tables"
 

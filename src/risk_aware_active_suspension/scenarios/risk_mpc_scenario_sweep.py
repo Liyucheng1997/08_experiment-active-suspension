@@ -46,16 +46,26 @@ class Phase6Scenario:
     coupled_lateral_demand: bool = False
 
 
+LOW_RISK_PREFIXES = ("S1", "S2", "S3", "S4", "S6")
+MEDIUM_RISK_PREFIXES = ("S5",)
+HIGH_RISK_PREFIXES = ("S7", "S8", "S9")
+Q_P_MAX_BY_RISK = {
+    "low": 1.0e-4,
+    "medium": 3.0e-4,
+    "high": 1.0e-3,
+}
+
+
 PHASE6_SCENARIOS: tuple[Phase6Scenario, ...] = (
-    Phase6Scenario("S1_classB_straight", "class B + straight", 4.0, "B", 0.9, (700, 700, 600, 600), road_scale=0.5),
-    Phase6Scenario("S2_smooth_lane_change", "smooth + single lane change", 4.0, None, 0.9, (700, 700, 600, 600), lane_change=True, peak_ay=3.0),
-    Phase6Scenario("S3_smooth_jturn", "smooth + moderate J-turn", 4.0, None, 0.9, (850, 850, 700, 700), peak_ay=4.0),
-    Phase6Scenario("S4_classC_cornering", "class C + steady cornering", 4.0, "C", 0.8, (1200, 900, 900, 750), peak_ay=4.0, road_scale=0.1),
-    Phase6Scenario("S5_classC_lane_change", "class C + lane change", 4.0, "C", 0.8, (1200, 900, 900, 750), lane_change=True, peak_ay=4.0, road_scale=0.25),
-    Phase6Scenario("S6_emergency_brake", "smooth + emergency brake", 3.5, None, 0.8, (750, 750, 1200, 1200), peak_ax=-8.0),
-    Phase6Scenario("S7_brake_cornering", "smooth + brake during cornering", 3.5, None, 0.75, (1500, 900, 1200, 900), peak_ax=-6.0, peak_ay=4.0),
-    Phase6Scenario("S8_worst_case", "scaled class D + brake + cornering", 4.0, "D", 0.7, (900, 600, 800, 600), peak_ax=-6.0, peak_ay=5.0, road_scale=0.1),
-    Phase6Scenario("S9_corner_bump", "smooth + cornering + outer-front bump", 3.5, None, 0.7, (0, 0, 0, 0), peak_ay=4.0, bump_wheel=1, bump_height=0.02, bump_start=1.8, bump_duration=0.03, coupled_lateral_demand=True),
+    Phase6Scenario("S1_classB_straight", "B x0.5 + straight", 4.0, "B", 0.9, (700, 700, 600, 600), road_scale=0.5),
+    Phase6Scenario("S2_smooth_lane_change", "flat + single lane change", 4.0, None, 0.9, (700, 700, 600, 600), lane_change=True, peak_ay=3.0),
+    Phase6Scenario("S3_smooth_jturn", "flat + moderate J-turn", 4.0, None, 0.9, (850, 850, 700, 700), peak_ay=4.0),
+    Phase6Scenario("S4_classC_cornering", "C x0.1 + steady cornering", 4.0, "C", 0.8, (1200, 900, 900, 750), peak_ay=4.0, road_scale=0.1),
+    Phase6Scenario("S5_classC_lane_change", "C x0.25 + lane change", 4.0, "C", 0.8, (1200, 900, 900, 750), lane_change=True, peak_ay=4.0, road_scale=0.25),
+    Phase6Scenario("S6_emergency_brake", "flat + emergency brake", 3.5, None, 0.8, (750, 750, 1200, 1200), peak_ax=-8.0),
+    Phase6Scenario("S7_brake_cornering", "flat + brake during cornering", 3.5, None, 0.75, (1500, 900, 1200, 900), peak_ax=-6.0, peak_ay=4.0),
+    Phase6Scenario("S8_worst_case", "D x0.02 + brake + cornering", 4.0, "D", 0.7, (900, 600, 800, 600), peak_ax=-6.0, peak_ay=5.0, road_scale=0.02),
+    Phase6Scenario("S9_corner_bump", "flat + cornering + FR bump", 3.5, None, 0.7, (0, 0, 0, 0), peak_ay=4.0, bump_wheel=1, bump_height=0.02, bump_start=1.8, bump_duration=0.03, coupled_lateral_demand=True),
 )
 
 
@@ -135,9 +145,11 @@ def run_phase_6_main_sweep(
             spec,
         )
 
-    low_risk = [r for r in rows if str(r["scenario"]).startswith(("S1", "S2", "S3"))]
-    high_risk = [r for r in rows if str(r["scenario"]).startswith(("S7", "S8", "S9"))]
+    low_risk = [r for r in rows if r["risk_level"] == "low"]
+    medium_risk = [r for r in rows if r["risk_level"] == "medium"]
+    high_risk = [r for r in rows if r["risk_level"] == "high"]
     logger.log_kv("acceptance_low_risk_mpc_rho_change_lt_10pct", int(all(abs(float(r["rho_reduction_ratio"])) < 0.10 for r in low_risk)))
+    logger.log_kv("acceptance_medium_risk_peak_change_lt_10pct", int(all(abs(float(r["rho_reduction_ratio"])) < 0.10 for r in medium_risk)))
     logger.log_kv("acceptance_S9_rho_reduction_ge_15pct", int(next(float(r["rho_reduction_ratio"]) for r in rows if r["scenario"] == "S9_corner_bump") >= 0.15))
     logger.log_kv("acceptance_any_high_risk_reduction_ge_15pct", int(any(float(r["rho_reduction_ratio"]) >= 0.15 for r in high_risk)))
     logger.log("Phase 6 main scenario sweep completed.")
@@ -179,13 +191,7 @@ def _smooth_step(t: np.ndarray, start: float, rise_time: float) -> np.ndarray:
 
 
 def _risk_params_for(spec: Phase6Scenario) -> RiskWeightParams:
-    q_p_max = 0.003
-    if spec.name.startswith(("S1", "S2", "S3")):
-        q_p_max = 1.0e-5
-    elif spec.name.startswith("S7"):
-        q_p_max = 0.0003
-    elif spec.name.startswith("S8"):
-        q_p_max = 0.0008
+    q_p_max = Q_P_MAX_BY_RISK[_risk_level_for(spec)]
     return RiskWeightParams(
         rho_th=0.75,
         k_rho=25.0,
@@ -197,14 +203,32 @@ def _risk_params_for(spec: Phase6Scenario) -> RiskWeightParams:
     )
 
 
+def _risk_level_for(spec: Phase6Scenario) -> str:
+    if spec.name.startswith(LOW_RISK_PREFIXES):
+        return "low"
+    if spec.name.startswith(MEDIUM_RISK_PREFIXES):
+        return "medium"
+    if spec.name.startswith(HIGH_RISK_PREFIXES):
+        return "high"
+    raise ValueError(f"unknown scenario risk level for {spec.name!r}")
+
+
 def _run_comfort(controller, plant: FullCar, t: np.ndarray, roads: np.ndarray, a_x: np.ndarray, a_y: np.ndarray, f_c: np.ndarray, mu: float) -> dict[str, np.ndarray]:
     states = np.zeros((len(t), 14), dtype=float)
     forces = np.zeros((len(t), 4), dtype=float)
     fz_true = np.zeros((len(t), 4), dtype=float)
     rho_contact = np.zeros((len(t), 4), dtype=float)
     state = np.zeros(14)
+    # Update the comfort-QP at the same control period T_s as the Risk-MPC
+    # (zero-order hold between updates) so the two controllers are compared at
+    # an identical sampling rate. Recomputing the LQR feedback every plant
+    # integration step would give the baseline an unfair 5x update advantage.
+    dt = float(t[1] - t[0])
+    steps_per_update = max(1, int(round(controller.lqr.T_s / dt)))
+    force = np.zeros(4, dtype=float)
     for idx in range(len(t) - 1):
-        force = controller.compute(state)
+        if idx % steps_per_update == 0:
+            force = controller.compute(state)
         forces[idx] = force
         fz_true[idx] = plant.tire_normal_forces(state, roads[idx])
         rho_contact[idx] = rho(f_c[idx], 0.0, fz_true[idx], mu)
@@ -225,6 +249,8 @@ def _summarize_scenario(spec: Phase6Scenario, comfort: dict, mpc: dict, f_max: f
     return {
         "scenario": spec.name,
         "description": spec.description,
+        "risk_level": _risk_level_for(spec),
+        "q_p_max": Q_P_MAX_BY_RISK[_risk_level_for(spec)],
         "mu": spec.mu,
         "comfort_peak_rho": comfort_peak,
         "mpc_peak_rho": mpc_peak,

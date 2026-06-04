@@ -21,8 +21,9 @@ def test_lane_change_a_y_profile_zero_outside_window() -> None:
 
 
 def test_full_car_body_acc_input_drives_roll_in_correct_direction(default_vehicle) -> None:
-    # Positive a_y must drive phi negative under our convention so that
-    # left side compresses (consistent with normal_loads_quasi_static).
+    # Positive a_y (left turn) transfers load to the RIGHT (outer) wheels,
+    # matching the paper convention and normal_loads_quasi_static. With phi>0
+    # raising the left side, load transfer to the right drives phi positive.
     plant = FullCar(default_vehicle)
     t = np.arange(0.0, 4.0, 0.001)
     roads = np.zeros((len(t), 4))
@@ -30,12 +31,12 @@ def test_full_car_body_acc_input_drives_roll_in_correct_direction(default_vehicl
     state = np.zeros(14)
     for k in range(len(t) - 1):
         state = plant.step(state, roads[k], 0.001, body_acc=body_acc[k])
-    # After 4 s the body has rolled into a steady-state phi < 0.
-    assert state[2] < 0.0
-    # Left side (corners 0 and 2) compressed: z_u for those corners has
-    # moved downward less than body, so suspension stroke is more negative.
+    # After 4 s the body has rolled into a steady-state phi > 0 (left rises).
+    assert state[2] > 0.0
+    # Right side (corners 1 and 3) compressed: the outer wheels carry the
+    # transferred load, so their suspension stroke is more negative.
     strokes = plant.suspension_strokes(state)
-    assert strokes[0] < strokes[1]  # FL more compressed than FR
+    assert strokes[1] < strokes[0]  # FR more compressed than FL
 
 
 def test_phase_3_5_csv_has_all_combinations(tmp_path, repo_root) -> None:

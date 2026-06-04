@@ -21,9 +21,23 @@ def test_quasi_static_lateral_transfer_matches_formula(default_vehicle) -> None:
     plant = FullCar(default_vehicle)
     result = load_transfer_validation(plant, a_x=5.0, a_y=5.0)
 
-    assert result["left_delta"] == pytest.approx(result["expected_left_delta"], rel=0.05)
-    assert result["right_delta"] == pytest.approx(-result["expected_left_delta"], rel=0.05)
-    assert result["left_delta_rel_error"] < 0.05
+    assert result["right_delta"] == pytest.approx(result["expected_right_delta"], rel=0.05)
+    assert result["left_delta"] == pytest.approx(-result["expected_right_delta"], rel=0.05)
+    assert result["right_delta_rel_error"] < 0.05
+
+
+def test_quasi_static_lateral_transfer_uses_wheelbase_distribution(default_vehicle) -> None:
+    plant = FullCar(default_vehicle)
+    static = plant.static_loads()
+    loads = plant.normal_loads_quasi_static(a_y=5.0)
+    p = default_vehicle
+    wheelbase = p.l_f + p.l_r
+
+    expected_front_right_delta = p.m * p.h_g * 5.0 * p.l_r / (wheelbase * p.t)
+    expected_rear_right_delta = p.m * p.h_g * 5.0 * p.l_f / (wheelbase * p.t)
+
+    assert loads[1] - static[1] == pytest.approx(expected_front_right_delta)
+    assert loads[3] - static[3] == pytest.approx(expected_rear_right_delta)
 
 
 def test_quasi_static_load_transfer_conserves_total_weight(default_vehicle) -> None:

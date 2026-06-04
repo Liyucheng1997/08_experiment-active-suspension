@@ -1,4 +1,4 @@
-"""Build the two paper TODO figures (Section V.B & V.E) from existing runs."""
+"""Build Section V.B and V.E paper figures from current generated runs."""
 from __future__ import annotations
 
 import csv
@@ -10,19 +10,14 @@ import numpy as np
 
 
 PROJECT = Path(r"F:/我的科研工作/05_Risk_Aware_Active_Suspension")
-PAPER_FIG_DIR = Path(
-    r"D:/OneDrive - Unimore/02_博士相关资料/05_论文资料备份/"
-    r"01_我的Latex论文写作/12_Risk-Aware Active Suspension Control "
-    r"for Tire Friction Margin Protection Using Super-Twisting Normal "
-    r"Load Estimation/figures"
-)
+PAPER_FIG_DIR = Path(r"F:/latex/12_RiskAware_ActiveSuspension/figures")
 
-PHASE_5_5 = PROJECT / "results/phase-5.5_risk-mpc_mpc-vs-one-step-qp_20260528_181532"
-PHASE_5_4 = PROJECT / "results/phase-5.4_risk-mpc_warm-start-timing_20260528_181040"
+TABLE2_HORIZON = PROJECT / "results/paper_table2_horizon_ablation_current"
+PHASE_5_4 = PROJECT / "results/phase-5.4_risk-mpc_warm-start-timing_20260604_142528"
 
 COLORS = {
     "comfort": "#C83737",
-    "qp":      "#6F6F6F",
+    "n1":      "#6F6F6F",
     "mpc":     "#1F77B4",
     "safe":    "#2B2B2B",
     "warm":    "#1F77B4",
@@ -45,16 +40,16 @@ def paper_style() -> None:
 
 
 # --------------------------------------------------------------------------
-# Figure 8 — MPC vs One-Step QP on S9 (Section V.B)
+# Figure 8 — Risk-MPC horizon ablation on S9 (Section V.B)
 # --------------------------------------------------------------------------
 def make_fig08_mpc_vs_qp(out: Path) -> None:
-    r = np.load(PHASE_5_5 / "raw.npz")
+    r = np.load(TABLE2_HORIZON / "raw_s9.npz")
     t = r["t"]
     comfort_rho = r["comfort_rho"].max(axis=1)
-    qp_rho      = r["qp_rho"].max(axis=1)
-    mpc_rho     = r["mpc_rho"].max(axis=1)
-    qp_fr  = r["qp_forces"][:, 1]   # FR is the bumped wheel under +a_y
-    mpc_fr = r["mpc_forces"][:, 1]
+    n1_rho      = r["n1_rho"].max(axis=1)
+    n10_rho     = r["n10_rho"].max(axis=1)
+    n1_fr  = r["n1_forces"][:, 1]   # FR is the bumped wheel under +a_y
+    n10_fr = r["n10_forces"][:, 1]
     rho_safe = 0.85
     bump_t = 1.8
 
@@ -68,25 +63,27 @@ def make_fig08_mpc_vs_qp(out: Path) -> None:
 
     ax0 = axes[0]
     ax0.plot(t[win], comfort_rho[win], color=COLORS["comfort"], label="Comfort-QP")
-    ax0.plot(t[win], qp_rho[win],      color=COLORS["qp"],
-             label="One-step Risk-QP ($N_p=1$)")
-    ax0.plot(t[win], mpc_rho[win],     color=COLORS["mpc"], linewidth=2.0,
+    ax0.plot(t[win], n1_rho[win],      color=COLORS["n1"],
+             label="Risk-MPC ($N_p=1$)")
+    ax0.plot(t[win], n10_rho[win],     color=COLORS["mpc"], linewidth=2.0,
              label="Risk-MPC ($N_p=10$)")
     ax0.axhline(rho_safe, color=COLORS["safe"], linestyle=(0, (4, 2)),
                 linewidth=1.0, label=r"$\rho_{safe}=0.85$")
     ax0.axvline(bump_t, color="#777777", linestyle=":", linewidth=0.9)
-    ax0.text(bump_t + 0.005, ax0.get_ylim()[1] if False else 2.0,
-             "bump", fontsize=8.6, color="#444444", style="italic")
     ax0.set_ylabel(r"$\rho_{max}$")
-    ax0.set_title("Section V.B — S9 bump-during-cornering: receding horizon damps post-impact ripple")
+    ax0.set_title("S9 bump-during-cornering: preview horizon damps post-impact ripple")
     ax0.legend(loc="upper right", fontsize=8.6, ncol=2)
-    ax0.set_ylim(0.45, 2.20)
+    ax0.set_ylim(0.45, 1.65)
+    ax0.text(
+        bump_t + 0.005, 1.57, "bump",
+        fontsize=8.6, color="#444444", style="italic", va="top",
+    )
 
     ax1 = axes[1]
-    ax1.plot(t[win], qp_fr[win],  color=COLORS["qp"],
-             label="One-step Risk-QP ($F_{e,FR}$)")
-    ax1.plot(t[win], mpc_fr[win], color=COLORS["mpc"], linewidth=2.0,
-             label="Risk-MPC ($F_{e,FR}$)")
+    ax1.plot(t[win], n1_fr[win],  color=COLORS["n1"],
+             label="$N_p=1$ ($F_{e,FR}$)")
+    ax1.plot(t[win], n10_fr[win], color=COLORS["mpc"], linewidth=2.0,
+             label="$N_p=10$ ($F_{e,FR}$)")
     ax1.axvline(bump_t, color="#777777", linestyle=":", linewidth=0.9)
     ax1.axhline(0, color="#999999", linewidth=0.7)
     ax1.set_ylabel("Outer-front actuator force [N]")
@@ -103,8 +100,8 @@ def make_fig08_mpc_vs_qp(out: Path) -> None:
 # --------------------------------------------------------------------------
 def make_fig09_timing_horizon(out: Path) -> None:
     # Left panel: per-step solve-time histogram on the S9 scenario.
-    r = np.load(PHASE_5_5 / "raw.npz")
-    solve_ms = r["mpc_solve_time"] * 1000.0  # to milliseconds
+    r = np.load(TABLE2_HORIZON / "raw_s9.npz")
+    solve_ms = r["n10_solve_time"] * 1000.0  # to milliseconds
     solve_ms = solve_ms[solve_ms > 0.0]      # drop the unused last sample(s)
     mean_ms = float(np.mean(solve_ms))
     p95_ms  = float(np.percentile(solve_ms, 95))

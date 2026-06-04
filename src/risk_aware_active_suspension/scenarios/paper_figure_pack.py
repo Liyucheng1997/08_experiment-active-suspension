@@ -27,8 +27,8 @@ from risk_aware_active_suspension.utils.config import from_yaml, lqr_from_yaml, 
 from risk_aware_active_suspension.utils.logger import RunLogger
 
 
-PHASE6_SOURCE = Path("results/phase-6_risk-mpc_scenario-sweep-main_20260528_183607")
-ABLATION_SOURCE = Path("results/phase-6.6_risk-mpc_component-ablation_20260528_185010")
+PHASE6_SOURCE = Path("results/phase-6_risk-mpc_scenario-sweep-main_20260604_104056")
+ABLATION_SOURCE = Path("results/phase-6.6_risk-mpc_component-ablation_20260604_104152")
 
 COLORS = {
     "comfort": "#C83737",
@@ -128,17 +128,27 @@ def _f(row: dict[str, str], key: str) -> float:
 
 
 def _plot_main_peak_rho(path: Path, rows: list[dict[str, str]]) -> None:
+    risk_order = {"low": 0, "medium": 1, "high": 2}
+    rows = sorted(
+        rows,
+        key=lambda r: (
+            risk_order.get(r.get("risk_level", "low"), 0),
+            r["scenario"].split("_", 1)[0],
+        ),
+    )
     names = [r["scenario"].split("_", 1)[0] for r in rows]
     x = np.arange(len(rows))
     width = 0.36
     comfort = [_f(r, "comfort_peak_rho") for r in rows]
     mpc = [_f(r, "mpc_peak_rho") for r in rows]
-    high_risk_start_idx = 6  # S7, S8, S9 are high-risk per fig02 logic
 
     fig, ax = plt.subplots(figsize=(7.6, 3.7))
-    # Shaded bands for the low-risk and high-risk regions
-    ax.axvspan(-0.5, high_risk_start_idx - 0.5, color="#F0F0F0", alpha=0.7, zorder=0)
-    ax.axvspan(high_risk_start_idx - 0.5, len(rows) - 0.5, color="#FBEAD9", alpha=0.55, zorder=0)
+    # Background bands follow the tuned Low/Medium/High parameter groups.
+    band_colors = {"low": "#F0F0F0", "medium": "#FFF1C9", "high": "#FBEAD9"}
+    for idx, row in enumerate(rows):
+        risk_level = row.get("risk_level", "low")
+        ax.axvspan(idx - 0.5, idx + 0.5, color=band_colors.get(risk_level, "#F0F0F0"),
+                   alpha=0.68 if risk_level == "medium" else 0.55, zorder=0)
     ax.bar(x - width / 2, comfort, width, label="Comfort-QP", color=COLORS["comfort"], alpha=0.92, zorder=2)
     ax.bar(x + width / 2, mpc, width, label="Risk-MPC", color=COLORS["mpc"], alpha=0.95, zorder=2)
     ax.axhline(0.85, color=COLORS["safe"], linestyle=(0, (4, 2)), linewidth=1.1, label=r"$\rho_{safe}=0.85$", zorder=3)
@@ -151,16 +161,17 @@ def _plot_main_peak_rho(path: Path, rows: list[dict[str, str]]) -> None:
 
     # Region headers above the bars
     top_y = 2.45
-    ax.text((high_risk_start_idx - 1) / 2.0, top_y, "Low risk (S1–S6)",
+    ax.text(2.0, top_y, "Low (S1–S4, S6)",
             ha="center", va="top", fontsize=10.0, fontweight="bold",
             color="#555555")
-    ax.text((high_risk_start_idx + len(rows) - 1) / 2.0, top_y,
-            "High risk (S7–S9)",
+    ax.text(5.0, top_y, "Medium (S5)",
+            ha="center", va="top", fontsize=10.0, fontweight="bold",
+            color="#8C6D00")
+    ax.text(7.0, top_y, "High (S7–S9)",
             ha="center", va="top", fontsize=10.0, fontweight="bold",
             color="#8C4500")
-    # Faint vertical separator between low- and high-risk regions
-    ax.axvline(high_risk_start_idx - 0.5, color="#999999",
-               linestyle=(0, (3, 3)), linewidth=0.8, zorder=1)
+    ax.axvline(4.5, color="#999999", linestyle=(0, (3, 3)), linewidth=0.8, zorder=1)
+    ax.axvline(5.5, color="#999999", linestyle=(0, (3, 3)), linewidth=0.8, zorder=1)
 
     ax.set_xticks(x)
     ax.set_xticklabels(names)
@@ -178,7 +189,12 @@ def _plot_safety_comfort_tradeoff(path: Path, rows: list[dict[str, str]]) -> Non
     labels = [r["scenario"].split("_", 1)[0] for r in rows]
     reduction = [100.0 * _f(r, "rho_reduction_ratio") for r in rows]
     heave_delta = [_f(r, "mpc_heave_rms") - _f(r, "comfort_heave_rms") for r in rows]
-    high_risk_labels = {"S7", "S8", "S9"}
+    level_by_label = {r["scenario"].split("_", 1)[0]: r.get("risk_level", "low") for r in rows}
+    point_style = {
+        "low": ("#9C9C9C", 52),
+        "medium": ("#C99600", 64),
+        "high": (COLORS["mpc"], 80),
+    }
     fig, ax = plt.subplots(figsize=(6.4, 4.0))
 
     # Lightly shade the "useful work" quadrant: positive reduction, any heave change.
@@ -201,10 +217,11 @@ def _plot_safety_comfort_tradeoff(path: Path, rows: list[dict[str, str]]) -> Non
     ax.axhline(0, color="#777777", linewidth=0.9, zorder=1)
     ax.axvline(0, color="#777777", linewidth=0.9, zorder=1)
     for x_i, y_i, label in zip(heave_delta, reduction, labels):
-        is_high = label in high_risk_labels
+        risk_level = level_by_label.get(label, "low")
+        color, size = point_style.get(risk_level, point_style["low"])
         ax.scatter(
-            [x_i], [y_i], s=80 if is_high else 52,
-            color=COLORS["mpc"] if is_high else "#9C9C9C",
+            [x_i], [y_i], s=size,
+            color=color,
             edgecolor="white", linewidth=0.8, zorder=3,
         )
 
@@ -224,11 +241,11 @@ def _plot_safety_comfort_tradeoff(path: Path, rows: list[dict[str, str]]) -> Non
                     textcoords="offset points",
                     xytext=offsets.get(label, (5, 4)),
                     fontsize=9.2,
-                    fontweight=("bold" if label in high_risk_labels else "normal"))
+                    fontweight=("bold" if level_by_label.get(label) == "high" else "normal"))
 
     ax.set_xlabel(r"Heave RMS change vs Comfort-QP [m/s$^2$]")
     ax.set_ylabel(r"Peak $\rho_{max}$ reduction [%]")
-    ax.set_title("Safety-comfort trade-off: gain concentrated in high-risk scenarios")
+    ax.set_title("Safety-comfort trade-off: gains follow the tuned risk groups")
     ax.set_xlim(xlim_pad_left, xlim_pad_right)
     ax.set_ylim(ylim_pad_bot, ylim_pad_top)
     fig.tight_layout()
@@ -268,7 +285,7 @@ def _plot_s8_timeseries(path: Path, run: dict[str, np.ndarray]) -> None:
     mpc = run["mpc"]
     rho_c = np.max(comfort["rho_contact"], axis=1)
     rho_m = np.max(mpc["rho_contact"], axis=1)
-    # Smoothed peak envelope for the noisy ρ_max trace (50 ms window).
+    # Display-only smoothing for the noisy rho_max trace (50 ms window).
     win_samp = max(1, int(0.05 / (t[1] - t[0])))
     kernel = np.ones(win_samp) / win_samp
     pad = win_samp // 2
@@ -285,8 +302,8 @@ def _plot_s8_timeseries(path: Path, run: dict[str, np.ndarray]) -> None:
     ax0 = axes[0]
     ax0.plot(t, rho_c, color=COLORS["comfort"], alpha=0.32, linewidth=0.9)
     ax0.plot(t, rho_m, color=COLORS["mpc"], alpha=0.32, linewidth=0.9)
-    ax0.plot(t, rho_c_smooth, label="Comfort-QP (50 ms env.)", color=COLORS["comfort"], linewidth=2.0)
-    ax0.plot(t, rho_m_smooth, label="Risk-MPC (50 ms env.)", color=COLORS["mpc"], linewidth=2.0)
+    ax0.plot(t, rho_c_smooth, label="Comfort-QP (50 ms avg.)", color=COLORS["comfort"], linewidth=2.0)
+    ax0.plot(t, rho_m_smooth, label="Risk-MPC (50 ms avg.)", color=COLORS["mpc"], linewidth=2.0)
     ax0.axhline(0.85, color=COLORS["safe"], linestyle=(0, (4, 2)), linewidth=1.0, label=r"$\rho_{safe}$")
     ax0.scatter([t[peak_c_idx]], [rho_c[peak_c_idx]],
                 marker="v", color=COLORS["comfort"], s=70, zorder=4, edgecolor="white", linewidth=0.7)
@@ -297,7 +314,8 @@ def _plot_s8_timeseries(path: Path, run: dict[str, np.ndarray]) -> None:
     ax0.annotate(f"peak={rho_m[peak_m_idx]:.2f}", (t[peak_m_idx], rho_m[peak_m_idx]),
                  textcoords="offset points", xytext=(6, -14), fontsize=8.4, color=COLORS["mpc"])
     ax0.set_ylabel(r"$\rho_{max}$")
-    ax0.set_title("S8 worst-case (class-D + brake + cornering, μ=0.7): Risk-MPC cuts peak ρ 38%")
+    reduction = 100.0 * (1.0 - float(np.max(rho_m)) / float(np.max(rho_c)))
+    ax0.set_title(f"S8 worst-case (D×0.02 roughness + brake + cornering, μ=0.7): Risk-MPC cuts peak ρ {reduction:.0f}%")
     ax0.legend(loc="upper right", ncol=2, fontsize=8.2)
     ax0.set_xlim(0.0, t[-1])
 
@@ -507,7 +525,7 @@ def _write_analysis_doc(path: Path, phase6_rows: list[dict[str, str]], ablation_
     s7 = next(r for r in phase6_rows if r["scenario"] == "S7_brake_cornering")
     s8 = next(r for r in phase6_rows if r["scenario"] == "S8_worst_case")
     s9 = next(r for r in phase6_rows if r["scenario"] == "S9_corner_bump")
-    low = [r for r in phase6_rows if r["scenario"].startswith(("S1", "S2", "S3"))]
+    low = [r for r in phase6_rows if r.get("risk_level", "") == "low"]
     low_max_change = max(abs(100.0 * _f(r, "rho_reduction_ratio")) for r in low)
     lines = [
         "# Paper Experiment Analysis: Risk-Aware Active Suspension",
@@ -522,9 +540,9 @@ def _write_analysis_doc(path: Path, phase6_rows: list[dict[str, str]], ablation_
         "",
         "## Main Scenario Sweep",
         "",
-        f"- Low-risk scenarios S1-S3: 最大 peak rho 变化约 {low_max_change:.1f}%，说明控制器在非临界工况下基本保持 comfort-QP 行为。",
+        f"- Low-risk scenarios: 最大 peak rho 变化约 {low_max_change:.1f}%，说明控制器在非临界工况下基本保持 comfort-QP 行为。",
         f"- S7 braking + cornering: peak rho 从 {_f(s7, 'comfort_peak_rho'):.3f} 降到 {_f(s7, 'mpc_peak_rho'):.3f}，降低 {100*_f(s7, 'rho_reduction_ratio'):.1f}%。",
-        f"- S8 scaled class-D + braking + cornering: peak rho 从 {_f(s8, 'comfort_peak_rho'):.3f} 降到 {_f(s8, 'mpc_peak_rho'):.3f}，降低 {100*_f(s8, 'rho_reduction_ratio'):.1f}%。这是主 paper scenario，体现 horizon prediction 相比 comfort-QP 的安全裕度收益。",
+        f"- S8 D×0.02-shaped roughness + braking + cornering: peak rho 从 {_f(s8, 'comfort_peak_rho'):.3f} 降到 {_f(s8, 'mpc_peak_rho'):.3f}，降低 {100*_f(s8, 'rho_reduction_ratio'):.1f}%。这是主 paper scenario，体现 horizon prediction 相比 comfort-QP 的安全裕度收益。",
         f"- S9 cornering + outer-front bump: peak rho 从 {_f(s9, 'comfort_peak_rho'):.3f} 降到 {_f(s9, 'mpc_peak_rho'):.3f}，降低 {100*_f(s9, 'rho_reduction_ratio'):.1f}%。这是 STO/动态路面风险通道的核心展示。",
         f"- S8/S9 的 heave RMS 分别增加 {100*_f(s8, 'heave_degradation_ratio'):.1f}% 和 {100*_f(s9, 'heave_degradation_ratio'):.1f}%。这应解释为安全-舒适 trade-off，而不是 comfort objective 失效。",
         "",
@@ -567,14 +585,14 @@ def _write_analysis_doc(path: Path, phase6_rows: list[dict[str, str]], ablation_
             "- Drop the `local weight focuses effort on the critical wheel` sub-claim from C2.",
             "- Keep the sigmoid scheduler + slack reformulation + STO observer-error tightening",
             "  as the surviving contributions.",
-            "- Either add a split-μ scenario (asymmetric ρ spread) to revive κ_ρ as a contribution,",
+            "- If κ_ρ is kept as a claimed contribution, add a split-μ scenario (asymmetric ρ spread) to test it,",
             "  or report the no-effect outcome as honest negative evidence in the limitations.",
             "",
             "## Figure Usage",
             "",
             "- `fig01_scenario_peak_rho.png`: main scenario sweep, low-risk and high-risk regimes shaded.",
             "- `fig02_safety_comfort_tradeoff.png`: safety-comfort trade-off; high-risk scenarios highlighted.",
-            "- `fig03_s8_worst_case_timeseries.png`: S8 headline; 50 ms envelope + peak markers.",
+            "- `fig03_s8_worst_case_timeseries.png`: S8 headline; 50 ms moving average + raw peak markers.",
             "- `fig04_s9_corner_bump_timeseries.png`: STO/transient bump story with bump line at t=1.8 s.",
             "- `fig05_ablation_safety_metrics.png`: ablation bar chart, A3 omitted (no effect; noted in suptitle).",
             "- `fig06_ablation_tradeoff.png`: ablation trade-off, faceted by scenario.",
@@ -584,7 +602,7 @@ def _write_analysis_doc(path: Path, phase6_rows: list[dict[str, str]], ablation_
             "",
             "- 不建议宣称所有高风险工况都严格压到 rho_safe 以下；当前线性模型和执行器约束下，更准确的说法是 risk-MPC substantially reduces peak utilization and improves margin.",
             "- S9 的 no-STO ablation 在 peak rho 上低于 full，但代价是 heave RMS 和 actuator force 明显变大，因此应从 safety-comfort-actuation trade-off 解释，而不是只看单个 peak 指标。",
-            "- A3 kappa_rho=0 没有可观测影响，论文 Conclusion 必须重写：本工作的 Conclusion 草稿（PDF 末页）写的是别的工作（RFG），必须替换为对齐 abstract 的版本，引用本文实测数 S7 21%/S8 38%/S9 31% 和 A1/A2/A4 ablation 结论。",
+            "- A3 kappa_rho=0 没有可观测影响；若保留该设计，应在 split-mu 或单角强冲击场景中补充验证，否则应作为 negative evidence 写入 limitations。",
             "",
         ]
     )

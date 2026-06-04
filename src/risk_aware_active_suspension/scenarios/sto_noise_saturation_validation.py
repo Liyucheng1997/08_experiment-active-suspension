@@ -37,7 +37,7 @@ def sto_noise_saturation_validation(
     road = iso8608("B", v_x=v_x, t=t, seed=41)
     states = plant.simulate(t, u_seq=0.0, w_seq=road)
     phi_known = np.array([_quarter_car_phi_known(plant, state) for state in states])
-    truth_tire_dynamic_force = plant.params.k_t * (states[:, 2] - road)
+    truth_tire_dynamic_force = plant.params.k_t * (road - states[:, 2])
     noisy_velocity, noise_std = add_noise_for_snr(states[:, 3], snr_db=snr_db)
 
     ideal = _run_noisy_observer(plant, observer_params, noisy_velocity, phi_known, dt, use_saturation=False)
@@ -190,7 +190,7 @@ def _run_noisy_observer(
         error = sto.v_u_hat - measured_velocity[idx]
         switching[idx] = sto._switching(error)
         additive_force_hat[idx], _ = sto.step(measured_velocity[idx], phi_known[idx], dt)
-        tire_dynamic_force_hat[idx] = -additive_force_hat[idx]
+        tire_dynamic_force_hat[idx] = additive_force_hat[idx]
     return {
         "additive_force_hat": additive_force_hat,
         "tire_dynamic_force_hat": tire_dynamic_force_hat,

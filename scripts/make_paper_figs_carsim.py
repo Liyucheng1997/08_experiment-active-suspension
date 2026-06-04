@@ -1,13 +1,12 @@
-"""Build Section V.F (CarSim) paper figures from Phase 7.6 raw data.
+"""Build Section V.F (CarSim) paper figures from Phase 7.4 raw data.
 
 Paper-style (matching fig01-fig09) figures:
   fig10_carsim_s8.png       — 2-panel time series on S8 (top: ρ_max for
                               Comfort-QP vs Risk-MPC with ρ_safe annotated;
                               bottom: per-corner tire normal load showing
                               MPC re-loads the weakest wheel).
-  fig11_carsim_mu_mismatch.png — μ-mismatch robustness (left: bar chart of
-                              peak ρ for matched vs mismatched μ; right:
-                              time series of Risk-MPC ρ_max under both).
+  fig11_carsim_s4_s8_summary.png — S4/S8 summary bars for peak ρ, P95 ρ,
+                              and minimum normal load.
 """
 from __future__ import annotations
 
@@ -20,16 +19,10 @@ import numpy as np
 
 
 PROJECT = Path(r"F:/我的科研工作/05_Risk_Aware_Active_Suspension")
-PAPER_FIG_DIR = Path(
-    r"D:/OneDrive - Unimore/02_博士相关资料/05_论文资料备份/"
-    r"01_我的Latex论文写作/12_Risk-Aware Active Suspension Control "
-    r"for Tire Friction Margin Protection Using Super-Twisting Normal "
-    r"Load Estimation/figures"
-)
+PAPER_FIG_DIR = Path(r"F:/latex/12_RiskAware_ActiveSuspension/figures")
 
-PHASE = PROJECT / "results/phase-7.6_carsim_final-figure-pack_20260528_224921"
-RAW_74 = PHASE / "data/phase7_4_raw.npz"
-RAW_75 = PHASE / "data/phase7_5_raw.npz"
+PHASE = PROJECT / "results/paper_carsim_4000N_rate8000_fair_analytical_weights/phase-7.4_carsim_risk-mpc-validation_20260604_153240"
+RAW_74 = PHASE / "raw.npz"
 
 COLORS = {
     "comfort":   "#C83737",
@@ -123,71 +116,51 @@ def make_fig10_carsim_s8(out: Path) -> None:
 
 
 # --------------------------------------------------------------------------
-# Figure 11 — μ mismatch robustness
+# Figure 11 — S4/S8 CarSim summary
 # --------------------------------------------------------------------------
-def make_fig11_carsim_mu(out: Path) -> None:
-    r5 = np.load(RAW_75, allow_pickle=True)
-
-    # The Phase 7.5 raw npz stores two cases under the keys "matched_mu_0p8"
-    # and "mismatch_actual_0p6_assumed_0p8".  Time-series we need:
-    case_keys = {
-        "matched":  "matched_mu_0p8",
-        "mismatch": "mismatch_actual_0p6_assumed_0p8",
-    }
-    t   = r5[f"{case_keys['matched']}_risk_mpc_time"]
-    rho_matched_c = r5[f"{case_keys['matched']}_comfort_qp_rho_contact"].max(axis=1)
-    rho_matched_m = r5[f"{case_keys['matched']}_risk_mpc_rho_contact"].max(axis=1)
-    rho_mis_c     = r5[f"{case_keys['mismatch']}_comfort_qp_rho_contact"].max(axis=1)
-    rho_mis_m     = r5[f"{case_keys['mismatch']}_risk_mpc_rho_contact"].max(axis=1)
-
-    # Summary numbers (peak ρ for the bar chart)
-    peak_matched_c  = float(np.max(rho_matched_c))
-    peak_matched_m  = float(np.max(rho_matched_m))
-    peak_mis_c      = float(np.max(rho_mis_c))
-    peak_mis_m      = float(np.max(rho_mis_m))
+def make_fig11_carsim_s4_s8_summary(out: Path) -> None:
+    r = np.load(RAW_74, allow_pickle=True)
+    scenarios = ["S4_classC_cornering", "S8_worst_case"]
+    labels = ["S4", "S8"]
     rho_safe = 0.85
 
-    fig, axes = plt.subplots(1, 2, figsize=(7.7, 3.5))
+    peak_c, peak_m = [], []
+    p95_c, p95_m = [], []
+    minfz_c, minfz_m = [], []
+    for scenario in scenarios:
+        t = r[f"{scenario}_comfort_qp_time"]
+        vx = r[f"{scenario}_comfort_qp_vx_kmh"]
+        fz_c = r[f"{scenario}_comfort_qp_fz_true"]
+        fz_m = r[f"{scenario}_risk_mpc_fz_true"]
+        rho_c = r[f"{scenario}_comfort_qp_rho_contact"].max(axis=1)
+        rho_m = r[f"{scenario}_risk_mpc_rho_contact"].max(axis=1)
+        valid = (t >= 0.5) & (vx > 1.0) & np.all(fz_c > 100.0, axis=1) & np.all(fz_m > 100.0, axis=1)
+        peak_c.append(float(np.max(rho_c[valid])))
+        peak_m.append(float(np.max(rho_m[valid])))
+        p95_c.append(float(np.percentile(rho_c[valid], 95)))
+        p95_m.append(float(np.percentile(rho_m[valid], 95)))
+        minfz_c.append(float(np.min(fz_c[valid])))
+        minfz_m.append(float(np.min(fz_m[valid])))
 
-    # ---- Left: paired bar chart ----
-    ax0 = axes[0]
-    x = np.arange(2)
+    fig, axes = plt.subplots(1, 3, figsize=(7.8, 3.1))
+    x = np.arange(len(labels))
     width = 0.34
-    bars_c = ax0.bar(x - width/2, [peak_matched_c, peak_mis_c], width,
-                     color=COLORS["comfort"], alpha=0.92, label="Comfort-QP")
-    bars_m = ax0.bar(x + width/2, [peak_matched_m, peak_mis_m], width,
-                     color=COLORS["mpc"],     alpha=0.95, label="Risk-MPC")
-    ax0.axhline(rho_safe, color=COLORS["safe"], linestyle=(0, (4, 2)),
-                linewidth=1.0, label=r"$\rho_{safe}=0.85$")
-    for cx, c_peak, m_peak in zip(x, [peak_matched_c, peak_mis_c],
-                                       [peak_matched_m, peak_mis_m]):
-        reduction = (c_peak - m_peak) / c_peak * 100.0
-        ax0.text(cx, max(c_peak, m_peak) + 0.04, f"$-${reduction:.1f}%",
-                 ha="center", va="bottom", fontsize=9.0, fontweight="bold",
-                 color="#0B4D80")
-    ax0.set_xticks(x)
-    ax0.set_xticklabels([
-        r"matched $\mu=0.8$",
-        r"$\mu$ mismatch (plant $0.6$, ctrl $0.8$)",
-    ])
-    ax0.set_ylabel(r"Peak $\rho_{max}$")
-    ax0.set_title("Robustness: Risk-MPC keeps the gain under $\\mu$ mismatch")
-    ax0.legend(loc="upper left", fontsize=8.4, ncol=1)
-    ax0.set_ylim(0.0, max(peak_matched_c, peak_mis_c) * 1.20)
 
-    # ---- Right: Risk-MPC ρ_max trajectories under matched and mismatched μ ----
-    ax1 = axes[1]
-    win = (t >= 0.5) & (t <= 4.0)
-    ax1.plot(t[win], rho_matched_m[win], color=COLORS["matched"], linewidth=1.8,
-             label=r"matched $\mu=0.8/0.8$")
-    ax1.plot(t[win], rho_mis_m[win],     color=COLORS["mismatch"], linewidth=1.8,
-             label=r"mismatch $\mu=0.6/0.8$")
-    ax1.axhline(rho_safe, color=COLORS["safe"], linestyle=(0, (4, 2)),
-                linewidth=1.0, label=r"$\rho_{safe}$")
-    ax1.set_xlabel("Time [s]")
-    ax1.set_ylabel(r"Risk-MPC $\rho_{max}$")
-    ax1.set_title("Graceful degradation under unknown low $\\mu$")
-    ax1.legend(loc="upper right", fontsize=8.4)
+    panels = [
+        (axes[0], peak_c, peak_m, r"Peak $\rho_{max}$", "Peak utilization"),
+        (axes[1], p95_c, p95_m, r"P95 $\rho_{max}$", "Sustained utilization"),
+        (axes[2], minfz_c, minfz_m, "min $F_z$ [N]", "Normal-load floor"),
+    ]
+    for ax, comfort, mpc, ylabel, title in panels:
+        ax.bar(x - width / 2, comfort, width, color=COLORS["comfort"], alpha=0.92, label="Comfort-QP")
+        ax.bar(x + width / 2, mpc, width, color=COLORS["mpc"], alpha=0.95, label="Risk-MPC")
+        if "rho" in ylabel:
+            ax.axhline(rho_safe, color=COLORS["safe"], linestyle=(0, (4, 2)), linewidth=1.0)
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+    axes[0].legend(loc="upper right", fontsize=8.0)
 
     fig.tight_layout()
     fig.savefig(out)
@@ -202,9 +175,9 @@ def main() -> None:
     PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
 
     fig10 = out_dir / "fig10_carsim_s8.png"
-    fig11 = out_dir / "fig11_carsim_mu_mismatch.png"
+    fig11 = out_dir / "fig11_carsim_s4_s8_summary.png"
     make_fig10_carsim_s8(fig10)
-    make_fig11_carsim_mu(fig11)
+    make_fig11_carsim_s4_s8_summary(fig11)
 
     for fig in (fig10, fig11):
         dst = PAPER_FIG_DIR / fig.name

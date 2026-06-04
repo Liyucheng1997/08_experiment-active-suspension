@@ -61,6 +61,26 @@ def test_tire_normal_forces_equal_static_loads_at_rest(default_vehicle) -> None:
     np.testing.assert_allclose(forces, plant.static_loads(), atol=1e-9)
 
 
+def test_tire_normal_force_increases_on_positive_road_input(default_vehicle) -> None:
+    plant = FullCar(default_vehicle)
+    road = np.zeros(4)
+    road[0] = 0.02
+
+    forces = plant.tire_normal_forces(np.zeros(14), road)
+
+    assert forces[0] == pytest.approx(plant.static_loads()[0] + default_vehicle.k_t * 0.02)
+
+
+def test_tire_normal_forces_clamp_liftoff_to_contact_floor(default_vehicle) -> None:
+    plant = FullCar(default_vehicle)
+    state = np.zeros(14)
+    state[6] = 1.0
+
+    forces = plant.tire_normal_forces(state, np.zeros(4))
+
+    assert forces[0] == 0.0
+
+
 def test_full_car_signal_helpers_have_expected_shapes(default_vehicle) -> None:
     plant = FullCar(default_vehicle)
     states = np.zeros((3, 14))

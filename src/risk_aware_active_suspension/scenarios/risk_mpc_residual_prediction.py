@@ -43,6 +43,7 @@ def run_mpc_residual_closed_loop(
     alpha: float,
     fz_tightening_n: float = 0.0,
     a_x: np.ndarray | None = None,
+    preview_exogenous: bool = True,
 ) -> dict[str, np.ndarray]:
     n = len(t)
     dt = float(t[1] - t[0])
@@ -71,10 +72,8 @@ def run_mpc_residual_closed_loop(
     for idx in range(n - 1):
         fz_true[idx] = plant.tire_normal_forces(state, roads[idx])
         rho_contact[idx] = rho(f_c[idx], 0.0, fz_true[idx], mu)
-        # Use the same nominal convention as plant.tire_normal_forces: static
-        # load plus STO dynamic residual. The quasi-static helper has an
-        # opposite lateral-transfer sign relative to body_acc in this codebase,
-        # which makes F_z_hat physically inconsistent in the MPC diagnostic.
+        # The STO residual estimates k_t * (z_r - z_u), the same dynamic
+        # normal-load contribution used by plant.tire_normal_forces.
         fz_bar_now = plant.static_loads()
         for corner_idx, observer in enumerate(observers):
             phi_known = _full_car_corner_phi_known(plant, state, force, corner_idx)
@@ -83,7 +82,7 @@ def run_mpc_residual_closed_loop(
                 phi_known=phi_known,
                 dt=dt,
             )
-            fz_hat[idx, corner_idx] = fz_bar_now[corner_idx] - additive_force_hat
+            fz_hat[idx, corner_idx] = fz_bar_now[corner_idx] + additive_force_hat
 
         if idx % steps_per_update == 0:
             horizon_indices = np.minimum(idx + steps_per_update * np.arange(controller.horizon), n - 1)
@@ -95,12 +94,20 @@ def run_mpc_residual_closed_loop(
                 mode=prediction_mode,
                 alpha=alpha,
             ) - fz_tightening_n
-            fc_h = f_c[horizon_indices]
-            road_h = roads[horizon_indices]
-            body_acc_h = np.column_stack([
-                a_x_seq[horizon_indices],
-                a_y[horizon_indices],
-            ])
+            if preview_exogenous:
+                fc_h = f_c[horizon_indices]
+                road_h = roads[horizon_indices]
+                body_acc_h = np.column_stack([
+                    a_x_seq[horizon_indices],
+                    a_y[horizon_indices],
+                ])
+            else:
+                fc_h = np.tile(f_c[idx], (controller.horizon, 1))
+                road_h = np.tile(roads[idx], (controller.horizon, 1))
+                body_acc_h = np.tile(
+                    np.array([a_x_seq[idx], a_y[idx]], dtype=float),
+                    (controller.horizon, 1),
+                )
             force = controller.compute(
                 state,
                 f_z_hat=fz_h,

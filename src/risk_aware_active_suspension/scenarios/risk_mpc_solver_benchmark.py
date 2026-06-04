@@ -159,7 +159,7 @@ def _make_benchmark_trace(
                 phi_known=phi_known,
                 dt=dt,
             )
-            fz_hat[idx, corner_idx] = static_loads[corner_idx] - additive_force_hat
+            fz_hat[idx, corner_idx] = static_loads[corner_idx] + additive_force_hat
         state = plant.step(state, roads[idx], dt, u=force, body_acc=np.array([0.0, a_y[idx]]))
         states[idx + 1] = state
     fz_hat[-1] = fz_hat[-2]

@@ -120,12 +120,13 @@ def run_phase_4_3(
     # Synthetic ρ_ij proxy: scale a_y to populate the outer wheels' utilization
     # (rough placeholder until 4.4/4.5 wire up the real F_z and F_c).
     rho_history = np.zeros((len(t), 4), dtype=float)
-    # Left wheels (FL=0, RL=2) load up under positive a_y; rho roughly tracks |a_y|.
+    # Right wheels (FR=1, RR=3) load up under the paper's positive-a_y convention;
+    # rho roughly tracks |a_y|.
     rho_proxy = 0.85 / 3.0 * np.abs(a_y)  # peaks ~0.85 at peak a_y
-    rho_history[:, 0] = rho_proxy
-    rho_history[:, 2] = rho_proxy
-    rho_history[:, 1] = 0.3 * rho_proxy
-    rho_history[:, 3] = 0.3 * rho_proxy
+    rho_history[:, 1] = rho_proxy
+    rho_history[:, 3] = rho_proxy
+    rho_history[:, 0] = 0.3 * rho_proxy
+    rho_history[:, 2] = 0.3 * rho_proxy
 
     risk = RiskWeightParams(
         rho_th=0.75, k_rho=25.0, kappa_rho=5.0,

@@ -15,12 +15,7 @@ import numpy as np
 
 
 PROJECT = Path(r"F:/我的科研工作/05_Risk_Aware_Active_Suspension")
-PAPER_FIG_DIR = Path(
-    r"D:/OneDrive - Unimore/02_博士相关资料/05_论文资料备份/"
-    r"01_我的Latex论文写作/12_Risk-Aware Active Suspension Control "
-    r"for Tire Friction Margin Protection Using Super-Twisting Normal "
-    r"Load Estimation/figures"
-)
+PAPER_FIG_DIR = Path(r"F:/latex/12_RiskAware_ActiveSuspension/figures")
 OUT = PROJECT / "results/paper_fig_polish/fig_friction_margin.png"
 
 COLOR_COMFORT = "#C83737"
@@ -88,7 +83,7 @@ def _draw(ax, F_z_kN: float, demand: tuple[float, float], mu: float,
         ax.set_yticklabels([])
 
 
-def main() -> None:
+def make_friction_margin(out: Path) -> None:
     paper_style()
     fig, axes = plt.subplots(1, 2, figsize=(3.5, 2.0))
     # widen the gap so subplot titles don't run into each other
@@ -105,9 +100,13 @@ def main() -> None:
 
     fig.tight_layout(w_pad=0.6)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUT)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out)
     plt.close(fig)
+
+
+def main() -> None:
+    make_friction_margin(OUT)
 
     PAPER_FIG_DIR.mkdir(parents=True, exist_ok=True)
     dst = PAPER_FIG_DIR / "fig_friction_margin.png"

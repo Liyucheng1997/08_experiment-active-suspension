@@ -26,7 +26,7 @@ def sto_real_road_validation(
     road = iso8608(road_class, v_x=v_x, t=t, seed=41)
     states = plant.simulate(t, u_seq=0.0, w_seq=road)
     phi_known = np.array([_quarter_car_phi_known(plant, state) for state in states])
-    truth_tire_dynamic_force = plant.params.k_t * (states[:, 2] - road)
+    truth_tire_dynamic_force = plant.params.k_t * (road - states[:, 2])
     truth_additive_force = -truth_tire_dynamic_force
     truth_fz = plant.params.m * 9.81 / 4.0 + truth_tire_dynamic_force
 
@@ -43,7 +43,7 @@ def sto_real_road_validation(
             phi_known=phi_known[idx],
             dt=dt,
         )
-        tire_dynamic_force_hat[idx] = -additive_force_hat[idx]
+        tire_dynamic_force_hat[idx] = additive_force_hat[idx]
         f_z_hat[idx] = plant.params.m * 9.81 / 4.0 + tire_dynamic_force_hat[idx]
         v_u_hat[idx] = sto.v_u_hat
         chi_hat[idx] = sto.chi_hat

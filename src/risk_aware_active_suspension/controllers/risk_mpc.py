@@ -299,6 +299,7 @@ class FullCarRiskMPC:
     last_q_p_local: np.ndarray = field(init=False, default_factory=lambda: np.zeros(4))
     last_xi: np.ndarray = field(init=False, default_factory=lambda: np.zeros(4))
     last_solution: np.ndarray = field(init=False, default_factory=lambda: np.zeros(0))
+    last_dual: np.ndarray = field(init=False, default_factory=lambda: np.zeros(0))
 
     def __post_init__(self) -> None:
         if self.horizon <= 0:
@@ -327,6 +328,7 @@ class FullCarRiskMPC:
     def reset(self) -> None:
         self._u_prev[:] = 0.0
         self.last_solution = np.zeros(0)
+        self.last_dual = np.zeros(0)
         self._prob = None
 
     def compute(
@@ -389,10 +391,12 @@ class FullCarRiskMPC:
         t_setup = time.perf_counter()
         problem = self._prepare_problem(p_mat, q_vec, a_mat, l_vec, u_vec)
         if self.warm_start and self.last_solution.shape == (8 * self.horizon,):
-            # Reuse only the actuator part of the previous primal vector.
-            # Slack variables and dual multipliers encode the previous active
-            # risk-margin set, which changes quickly with STO and road preview.
-            problem.warm_start(x=self._actuator_only_warm_start(self.last_solution), y=np.zeros(a_mat.shape[0]))
+            # Receding-horizon warm start: shift the previous primal solution
+            # by one stage (repeating the terminal stage) and reuse the
+            # previous dual, so OSQP retains the active-set information that
+            # accelerates ADMM convergence between consecutive solves.
+            y_ws = self.last_dual if self.last_dual.shape == (a_mat.shape[0],) else None
+            problem.warm_start(x=self._shift_warm_start(self.last_solution), y=y_ws)
         elif not self.warm_start:
             problem.warm_start(x=np.zeros(8 * self.horizon), y=np.zeros(a_mat.shape[0]))
         t0 = time.perf_counter()
@@ -417,6 +421,7 @@ class FullCarRiskMPC:
         self.last_q_p_local = q_p_h[0].copy()
         self.last_xi = xi0
         self.last_solution = z
+        self.last_dual = np.asarray(getattr(res, "y", np.zeros(0)), dtype=float)
         self._u_prev = u0.copy()
         return u0
 
@@ -662,10 +667,10 @@ class FullCarRiskMPC:
             x_u = self._bar_b[x_row, :]
             for corner, state_row in enumerate(tire_rows):
                 row = out_row.start + corner
-                fz_u[row, :] = self.vehicle.k_t * x_u[state_row, :]
+                fz_u[row, :] = -self.vehicle.k_t * x_u[state_row, :]
                 fz_const[row] = (
                     static[corner]
-                    + self.vehicle.k_t * (x_const[state_row] - road_h[step, corner])
+                    + self.vehicle.k_t * (road_h[step, corner] - x_const[state_row])
                     + residual[step, corner]
                 )
         return fz_u, fz_const

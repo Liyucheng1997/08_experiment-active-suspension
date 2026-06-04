@@ -72,8 +72,7 @@ class STOPipeline:
                 phi_known=phi_known,
                 dt=dt,
             )
-            # Convention from Phase 2 scenarios: F_z_hat = static - additive.
-            fz_hat[corner_idx] = fz_bar[corner_idx] - additive
+            fz_hat[corner_idx] = fz_bar[corner_idx] + additive
         return fz_hat
 
 

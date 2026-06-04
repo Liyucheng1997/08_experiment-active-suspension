@@ -80,7 +80,10 @@ def run_phase_7_4_risk_mpc_validation(
     speed_kmh: float = 80.0,
     scenario_names: tuple[str, ...] = ("S4_classC_cornering", "S8_worst_case"),
     fmu_force_sign: float = -1.0,
-    carsim_force_limit_n: float = 800.0,
+    carsim_force_limit_n: float = 4000.0,
+    carsim_enforce_rate: bool = True,
+    carsim_df_max_n_per_s: float = 8000.0,
+    carsim_risk_tuning: str = "analytical",
 ) -> Path:
     """Run Phase 7.4 risk-aware MPC closed-loop validation on the CarSim FMU."""
 
@@ -90,6 +93,8 @@ def run_phase_7_4_risk_mpc_validation(
     vehicle = from_yaml(vehicle_config)
     lqr = replace(lqr_from_yaml(controller_config), f_max=float(carsim_force_limit_n))
     observer = observer_from_yaml(observer_config)
+    if carsim_risk_tuning not in {"carsim", "analytical"}:
+        raise ValueError("carsim_risk_tuning must be 'carsim' or 'analytical'.")
     full_car = FullCar(vehicle)
     carsim = CarSimFmuPlant(Path(fmu_path))
     logger = RunLogger.create(results_root, phase="phase-7.4", step="carsim", descriptor="risk-mpc-validation")
@@ -102,10 +107,11 @@ def run_phase_7_4_risk_mpc_validation(
     for scenario_name in scenario_names:
         spec = next(item for item in PHASE6_SCENARIOS if item.name == scenario_name)
         t, roads, a_x, a_y, f_c = _build_carsim_inputs(full_car, spec, sample_time, speed_kmh)
-        risk = _carsim_risk_params_for(spec)
+        risk = _risk_params_for(spec) if carsim_risk_tuning == "analytical" else _carsim_risk_params_for(spec)
         qp = RiskQPParams(
             rho_safe=0.85,
-            enforce_rate=False,
+            enforce_rate=bool(carsim_enforce_rate),
+            df_max=float(carsim_df_max_n_per_s),
             r_du_factor=1.0e-5,
             osqp_eps_abs=1.0e-5,
             osqp_eps_rel=1.0e-5,
@@ -127,6 +133,7 @@ def run_phase_7_4_risk_mpc_validation(
             sample_time,
             observer.delta_fz_err,
             fmu_force_sign,
+            carsim_df_max_n_per_s if carsim_enforce_rate else None,
         )
         mpc = _run_closed_loop(
             carsim,
@@ -144,6 +151,7 @@ def run_phase_7_4_risk_mpc_validation(
             sample_time,
             observer.delta_fz_err,
             fmu_force_sign,
+            carsim_df_max_n_per_s if carsim_enforce_rate else None,
         )
         runs[scenario_name] = {"comfort_qp": comfort, "risk_mpc": mpc}
         row = _summarize(spec.name, spec.mu, spec.mu, comfort, mpc, lqr.f_max)
@@ -160,6 +168,10 @@ def run_phase_7_4_risk_mpc_validation(
     _save_raw(logger.run_dir / "raw.npz", runs)
     for key, value in _aggregate_metrics(rows).items():
         logger.log_kv(key, value)
+    logger.log_kv("carsim_force_limit_n", carsim_force_limit_n)
+    logger.log_kv("carsim_enforce_rate", int(carsim_enforce_rate))
+    logger.log_kv("carsim_df_max_n_per_s", carsim_df_max_n_per_s)
+    logger.log(f"CarSim risk tuning: {carsim_risk_tuning}")
     logger.log("Phase 7.4 CarSim risk-aware MPC validation completed.")
     return logger.run_dir
 
@@ -180,6 +192,7 @@ def _run_closed_loop(
     sample_time: float,
     fz_tightening_n: float,
     fmu_force_sign: float,
+    force_rate_limit_n_per_s: float | None = None,
 ) -> dict[str, np.ndarray]:
     n = len(t)
     states = np.zeros((n, 14), dtype=float)
@@ -198,6 +211,7 @@ def _run_closed_loop(
     solve_time = np.zeros(n, dtype=float)
     iterations = np.zeros(n, dtype=int)
     sigma = np.zeros(n, dtype=float)
+    force_prev = np.zeros(4, dtype=float)
     baseline: dict[str, float] | None = None
 
     initial_inputs = _input_values(carsim, speed_kmh, steer=0.0, force=np.zeros(4), brake=np.zeros(4), road=roads[0], mu=plant_mu)
@@ -244,7 +258,11 @@ def _run_closed_loop(
                     sigma[idx] = controller.last_sigma
                 else:
                     force = controller.compute(state)
+            if force_rate_limit_n_per_s is not None:
+                du_max = float(force_rate_limit_n_per_s) * float(sample_time)
+                force = np.clip(force, force_prev - du_max, force_prev + du_max)
             forces[idx] = force
+            force_prev = force.copy()
             fmu_force = float(fmu_force_sign) * force
             fmu_forces[idx] = fmu_force
             session.set_reals(

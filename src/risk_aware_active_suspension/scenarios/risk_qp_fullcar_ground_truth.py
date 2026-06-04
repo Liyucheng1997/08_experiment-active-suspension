@@ -12,8 +12,7 @@ Design choices that differ from the Codex draft:
   * Lateral demand F_c is coupled to a_y: F_c_ij = F_z_quasi_static_ij · a_y/g.
     Wheels that bear more load also generate more lateral force, so the ratio
     ρ stays roughly a_y/(μ g) until a bump perturbs F_z.
-  * The bump lands on the outer-front wheel (FR under our convention where
-    positive a_y transfers load to the left), peaking the demand exactly when
+  * The bump lands on the outer-front wheel (FR in this scenario), peaking the demand exactly when
     F_z on that wheel is at its quasi-static minimum.
   * μ = 0.6 (wet) so that ρ_th = 0.75 is realistic for a_y = 6 m/s² and the
     constraint engages even outside the bump window.
@@ -59,9 +58,8 @@ def _coupled_f_c(plant: FullCar, a_y: float) -> np.ndarray:
     does NOT track the dynamic F_z — so a bump that dips F_z locally produces
     a ρ spike on that wheel (which is exactly what risk-QP must protect).
 
-    NOTE: this disagrees with plant.normal_loads_quasi_static, whose ± a_y
-    sign is flipped relative to body_acc. That's a known inconsistency in
-    the codebase; we side-step it by recomputing here from first principles.
+    This helper intentionally recomputes the lateral split from first
+    principles so the demand model remains explicit at the scenario level.
     """
     p = plant.params
     static_per_axle_front = p.m * GRAVITY * p.l_r / (p.l_f + p.l_r) / 2.0

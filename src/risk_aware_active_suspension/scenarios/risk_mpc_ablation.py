@@ -179,7 +179,7 @@ def _run_ablation_closed_loop(
                     phi_known=_full_car_corner_phi_known(plant, state, force, corner_idx),
                     dt=dt,
                 )
-                fz_hat[idx, corner_idx] = fz_bar_now[corner_idx] - additive_force_hat
+                fz_hat[idx, corner_idx] = fz_bar_now[corner_idx] + additive_force_hat
 
         if idx % steps_per_update == 0:
             horizon_indices = np.minimum(idx + steps_per_update * np.arange(controller.horizon), n - 1)

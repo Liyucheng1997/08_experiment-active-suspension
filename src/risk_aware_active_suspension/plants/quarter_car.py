@@ -70,10 +70,18 @@ class QuarterCar:
     def sprung_acceleration(self, x: ArrayLike, u: float = 0.0, w: float = 0.0) -> float:
         return float(self.derivative(x, u=u, w=w)[1])
 
-    def tire_normal_force(self, x: ArrayLike, w: float = 0.0, g: float = 9.81) -> float:
+    def tire_normal_force(
+        self,
+        x: ArrayLike,
+        w: float = 0.0,
+        g: float = 9.81,
+        contact_floor_n: float = 0.0,
+    ) -> float:
         state = np.asarray(x, dtype=float)
-        dynamic_force = self.params.k_t * (state[2] - float(w))
-        return float(self.params.m * g / 4.0 + dynamic_force)
+        if contact_floor_n < 0.0:
+            raise ValueError("contact_floor_n must be non-negative.")
+        dynamic_force = self.params.k_t * (float(w) - state[2])
+        return float(max(self.params.m * g / 4.0 + dynamic_force, contact_floor_n))
 
     def _build_A(self) -> np.ndarray:
         p = self.params
