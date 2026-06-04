@@ -28,3 +28,4 @@ plots/
 *.log
 *.fmu
 notebooks/.ipynb_checkpoints/
+experiment_plan.md

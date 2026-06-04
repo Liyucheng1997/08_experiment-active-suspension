@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "risk-aware-active-suspension"
 version = "0.1.0"
 description = "Risk-aware active suspension control experiments with super-twisting normal-load estimation."
-readme = "experiment_plan.md"
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.26",

@@ -114,7 +114,6 @@ of `carsim_fmu.py`.
 
 ```
 configs/                       # YAML defaults for vehicle / observer / controller
-experiment_plan.md             # phase-by-phase experiment log
 pyproject.toml                 # editable install metadata + deps
 scripts/                       # paper figure / table builders
 src/risk_aware_active_suspension/
