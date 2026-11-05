@@ -1,7 +1,7 @@
 """Generate one paper figure/table from existing run data.
 
 Default behavior uses the latest reviewed runs and overwrites the matching
-asset under F:/latex/12_RiskAware_ActiveSuspension. It does not rerun the full
+asset under F:/我的编程项目/430_主动悬架论文. It does not rerun the full
 scenario sweep. Time-series figures use a small cache; if the cache is absent,
 only the required headline case is regenerated and cached.
 """
@@ -16,8 +16,8 @@ from pathlib import Path
 import numpy as np
 
 
-PROJECT = Path(r"F:/我的科研工作/05_Risk_Aware_Active_Suspension")
-PAPER_ROOT = Path(r"F:/latex/12_RiskAware_ActiveSuspension")
+PROJECT = Path(r"F:/我的编程项目/429_主动悬架控制实验")
+PAPER_ROOT = Path(r"F:/我的编程项目/430_主动悬架论文")
 PAPER_FIG_DIR = PAPER_ROOT / "figures"
 PAPER_TABLE_DIR = PAPER_ROOT / "tables"
 

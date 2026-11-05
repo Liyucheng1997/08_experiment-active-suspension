@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-PROJECT = Path(r"F:/我的科研工作/05_Risk_Aware_Active_Suspension")
-PAPER_FIG_DIR = Path(r"F:/latex/12_RiskAware_ActiveSuspension/figures")
+PROJECT = Path(r"F:/我的编程项目/429_主动悬架控制实验")
+PAPER_FIG_DIR = Path(r"F:/我的编程项目/430_主动悬架论文/figures")
 OUT = PROJECT / "results/paper_fig_polish/fig_friction_margin.png"
 
 COLOR_COMFORT = "#C83737"

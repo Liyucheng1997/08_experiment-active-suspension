@@ -13,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
-PROJECT = Path(r"F:/我的科研工作/05_Risk_Aware_Active_Suspension")
+PROJECT = Path(r"F:/我的编程项目/429_主动悬架控制实验")
 sys.path.insert(0, str(PROJECT / "src"))
 
 from risk_aware_active_suspension.controllers.comfort_qp import FullCarComfortQP

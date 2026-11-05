@@ -14,7 +14,7 @@ import numpy as np
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_ROOT = PROJECT_ROOT / "results"
-PAPER_ROOT = Path(r"F:\latex\12_RiskAware_ActiveSuspension")
+PAPER_ROOT = Path(r"F:/我的编程项目/430_主动悬架论文")
 FIG_DIR = PAPER_ROOT / "figures"
 TABLE_DIR = PAPER_ROOT / "tables"
 

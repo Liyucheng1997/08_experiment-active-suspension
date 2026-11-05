@@ -2,7 +2,7 @@
 
 Use `scripts/make_paper_asset.py` when only figure/table formatting changes.
 It reuses the reviewed run data by default and overwrites the corresponding
-asset in `F:/latex/12_RiskAware_ActiveSuspension`.
+asset in `F:/我的编程项目/430_主动悬架论文`.
 
 ## Common Commands
 

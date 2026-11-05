@@ -29,3 +29,6 @@ plots/
 *.fmu
 notebooks/.ipynb_checkpoints/
 experiment_plan.md
+
+# Local code-analysis cache
+.understand-anything/

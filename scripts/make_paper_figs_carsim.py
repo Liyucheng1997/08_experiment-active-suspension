@@ -18,8 +18,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-PROJECT = Path(r"F:/我的科研工作/05_Risk_Aware_Active_Suspension")
-PAPER_FIG_DIR = Path(r"F:/latex/12_RiskAware_ActiveSuspension/figures")
+PROJECT = Path(r"F:/我的编程项目/429_主动悬架控制实验")
+PAPER_FIG_DIR = Path(r"F:/我的编程项目/430_主动悬架论文/figures")
 
 PHASE = PROJECT / "results/paper_carsim_4000N_rate8000_fair_analytical_weights/phase-7.4_carsim_risk-mpc-validation_20260604_153240"
 RAW_74 = PHASE / "raw.npz"
